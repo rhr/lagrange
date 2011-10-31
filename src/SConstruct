@@ -1,0 +1,25 @@
+env = Environment()
+
+sources = Split("""
+AncSplit.cpp
+InputReader.cpp
+BayesianBioGeoAllDispersal.cpp
+BayesianBioGeo.cpp
+BioGeoTree.cpp
+BioGeoTreeTools.cpp
+BranchSegment.cpp
+OptimizeBioGeo.cpp
+OptimizeBioGeoAllDispersal.cpp
+OptimizeBioGeoAllDispersal_nlopt.cpp
+RateMatrixUtils.cpp
+RateModel.cpp
+Utils.cpp
+node.cpp
+tree.cpp
+tree_reader.cpp
+tree_utils.cpp
+superdouble.cpp
+""")
+
+objects = env.Object(source=sources)
+

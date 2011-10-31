@@ -1,0 +1,13 @@
+env = Environment(
+    tools=['default','gfortran'],
+    FORTRANFLAGS='-O3',
+    )
+
+sources = ["clock.f",
+           "my_expokit.f",
+           "mataid.f",
+           "blas.f",
+           "lapack.f",
+           "my_matexp.f"]
+
+objs = [ x for x in env.Object(sources) if x.get_suffix()=='.o' ]
