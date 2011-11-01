@@ -1,4 +1,5 @@
 from cython.operator cimport dereference as deref, preincrement as inc
+from cython import address as addr
 
 from libcpp cimport bool
 from libcpp.vector cimport vector
@@ -27,6 +28,11 @@ cdef extern from "superdouble.h":
         _Superdouble abs()
         void switch_sign()
 
+cdef class Superdouble:
+    cdef _Superdouble* ptr
+    def __cinit__(self, long double mantissa=1.0, int exponent=0):
+        self.ptr = new _Superdouble(mantissa, exponent)
+
 cdef double super2double(_Superdouble x):
     return x.getMantissa()*pow(10., x.getExponent())
 
@@ -35,7 +41,6 @@ cdef extern from "node.h":
         _Node()
         string getName()
         vector[_BranchSegment]* getSegVector()
-        
 
 cdef class Node:
     cdef _Node* ptr
@@ -131,7 +136,9 @@ cdef extern from "tree.h":
         _Tree()
         int getNodeCount()
         int getExternalNodeCount()
+        int getInternalNodeCount()
         _Node* getExternalNode(int)
+        _Node* getInternalNode(int)
 
 cdef class Tree:
     cdef _Tree* ptr
@@ -146,6 +153,12 @@ cdef class Tree:
     def getExternalNode(self, int i):
         cdef _Node* p = self.ptr.getExternalNode(i)
         return node_factory(p)
+    def getInternalNode(self, int i):
+        cdef _Node* p = self.ptr.getInternalNode(i)
+        return node_factory(p)
+    def internalNodes(self):
+        cdef int n = self.ptr.getInternalNodeCount()
+        return [ node_factory(self.ptr.getInternalNode(i)) for i in range(n) ]
 
 cdef extern from "tree_reader.h":
     cdef cppclass _TreeReader "TreeReader":
@@ -161,6 +174,19 @@ def readtree(s):
     del reader
     return t
 
+cdef extern from "AncSplit.h":
+    cdef cppclass _AncSplit "AncSplit":
+        _AncSplit(_RateModel*, int, int, int, _Superdouble)
+        _RateModel* getModel()
+        double getWeight()
+        _Superdouble getLikelihood()
+        int ancdistint, ldescdistint, rdescdistint
+
+cdef class AncSplit:
+    cdef _AncSplit* ptr
+    def __cinit__(self, RateModel m, int dist, int ldesc, int rdesc, Superdouble w):
+        self.ptr = new _AncSplit(m.ptr, dist, ldesc, rdesc, deref(w.ptr))
+
 cdef extern from "OptimizeBioGeo.h":
     cdef cppclass _OptimizeBioGeo "OptimizeBioGeo":
         _OptimizeBioGeo(_BioGeoTree*, _RateModel*, bool)
@@ -174,7 +200,11 @@ cdef extern from "BioGeoTree.h":
         void set_tip_conditionals(map[string,vector[int]])
         void ancdist_conditional_lh(_Node &, bool)
         void set_store_p_matrices(bool)
+        void set_use_stored_matrices(bool)
         void update_default_model(_RateModel * mod)
+        void prepare_ancstate_reverse()
+        map[vector[int],vector[_AncSplit]] calculate_ancsplit_reverse(_Node &,bool)
+        vector[_Superdouble] calculate_ancstate_reverse(_Node &,bool)
         
 cdef class BioGeoTree:
     cdef _BioGeoTree* ptr
@@ -216,6 +246,14 @@ cdef class BioGeoTree:
         cdef double finalL = super2double(self.ptr.eval_likelihood(marginal))
         print "final L:", finalL
         self.ptr.set_store_p_matrices(False)
+        
+    def ancsplits(self, Tree intree, bool marginal):
+        cdef int n = intree.getInternalNodeCount()
+        cdef int i
+        cdef _Node* node
+        for i in range(n):
+            node = intree.ptr.getInternalNode(i)
+            self.ptr.calculate_ancsplit_reverse(<_Node&>addr(node), marginal)
         
 
 cdef extern from "InputReader.h":
