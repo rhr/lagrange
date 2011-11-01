@@ -1,6 +1,39 @@
-env = Environment()
+import sys, os
 
-sources = Split("""
+env = Environment(
+    tools=['default','gfortran'],
+    FORTRANFLAGS=['-O3'],
+    CXXFLAGS=['-O2','-pthread','-fno-strict-aliasing','-g',
+              '-Wall','-fPIC','-fwrapv'],
+    CPPPATH = ['.', '/home/rree/mypy/include'],
+    LIBPATH=['/home/rree/mypy/lib']
+    )
+
+py_version_name = 'python' + sys.version[:3]
+py_header_path = os.path.join(sys.exec_prefix, 'include', py_version_name)
+env.Append(CPPPATH=py_header_path)
+
+conf = Configure(env)
+if not conf.CheckLib('nlopt'):
+    print 'Did not find libnlopt'
+    Exit(1)
+if not conf.CheckHeader('Python.h'):
+    print 'Did not find Python.h'
+    Exit(1)
+
+env = conf.Finish()
+
+fortran_sources = [
+    "clock.f",
+    "my_expokit.f",
+    "mataid.f",
+    "blas.f",
+    "lapack.f",
+    "my_matexp.f"
+    ]
+
+cpp_sources = Split("""
+lgcpp.cpp
 AncSplit.cpp
 InputReader.cpp
 BayesianBioGeoAllDispersal.cpp
@@ -21,5 +54,11 @@ tree_utils.cpp
 superdouble.cpp
 """)
 
-objects = env.Object(source=sources)
+## objects = env.Object(source=fortran_sources+cpp_sources)
 
+env.SharedLibrary(
+    'lgcpp', fortran_sources+cpp_sources,#objects,
+    LIBS=['m','nlopt','gsl','gslcblas','pthread','lapack','blas'],
+    CXXFLAGS=['-fopenmp','-O2','-pthread','-fno-strict-aliasing','-g',
+              '-Wall','-fPIC','-fwrapv']
+    )

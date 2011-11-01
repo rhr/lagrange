@@ -72,13 +72,14 @@ CPP_DEPS += \
 TARGET_NAME = lagrange_cpp
 #for cleaning use -Weffc++
 #for openmp -fopenmp
-C_OPT = -O3 -ftree-vectorize -ffast-math -g3 -fopenmp
+C_OPT = -O3 -ftree-vectorize -ffast-math -g3 -fPIC
 #C_OPT = -Wall -g
 
 
 #if using octave
 #INCLUDES = -I/usr/include/octave-3.0.5/octave/
 #INCLUDES = -I/usr/include/octave-3.2.4/
+INCLUDES = -I/home/rree/mypy/include
 
 # requires fortran, gsl, and pthread -- and -ldl -lutil -lpython2.6 are for python
 #-ldl -lutil -lpython2.6
@@ -91,11 +92,11 @@ LIBS := -llapack -lblas -lgfortran -lgsl -lgslcblas -lm -lpthread -lnlopt -fopen
 ######
 FC	= /usr/bin/gfortran
 FFLAGS	= -O3
-.f.o:;  $(FC) $(FFLAGS) -c $<
+.f.o:;  $(FC) $(FFLAGS) -fPIC -c $<
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: ./%.f
-	$(FC) $(FFLAGS) -c $<
+	$(FC) $(FFLAGS) -fPIC -c $<
 
 FORT_OBJS += \
 ./clock.o \
@@ -112,7 +113,7 @@ FORT_OBJS += \
 
 
 # link library locations
-LINK_LIB_DIRS = -L/usr/lib/ -L/usr/local/lib/
+LINK_LIB_DIRS = -L/usr/lib/ -L/usr/local/lib/ -L/home/rree/mypy/lib/
 
 # Tool invocations
 lagrange_cpp: $(OBJS) $(FORT_OBJS)
@@ -130,6 +131,11 @@ lagrange_cpp: $(OBJS) $(FORT_OBJS)
 
 # All Target
 all: lagrange_cpp
+
+lgcpp.so: lgcpp.pyx
+	python ./setup.py build_ext --inplace
+
+python: lgcpp.so
 
 # Other Targets
 clean:
