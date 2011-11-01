@@ -262,23 +262,18 @@ cdef class BioGeoTree:
         cdef map[vector[int],vector[_AncSplit]] ras
         cdef map[int,string] area_i2s
         cdef _BioGeoTreeTools tt
-        #cdef vector[map[vector[int],vector[_AncSplit]]] rasv
-        ## cdef vector[string] labels = m.ptr.get_labels()
-        ## print labels.size()
-        ## for i in range(labels.size()):
-        ##     print i, labels[i].c_str()
-        ##     area_i2s[i] = labels[i]
 
         self.ptr.set_use_stored_matrices(True)
         self.ptr.prepare_ancstate_reverse()
+
+        for i, a in enumerate(areas):
+            area_i2s[i] = string(<char *>a)
 
         for i in range(n):
             print i
             node = intree.ptr.getInternalNode(i)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             tt.summarizeSplits(node, ras, area_i2s, m.ptr)
-            #rasv.push_back(deref(ras))
-        
 
 cdef extern from "InputReader.h":
     cdef cppclass _InputReader "InputReader":
