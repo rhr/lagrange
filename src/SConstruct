@@ -58,6 +58,7 @@ superdouble.cpp
 
 env.SharedLibrary(
     'lgcpp', fortran_sources+cpp_sources,#objects,
+    SHLIBPREFIX='',
     LIBS=['m','nlopt','gsl','gslcblas','pthread','lapack','blas'],
     CXXFLAGS=['-fopenmp','-O2','-pthread','-fno-strict-aliasing','-g',
               '-Wall','-fPIC','-fwrapv']
