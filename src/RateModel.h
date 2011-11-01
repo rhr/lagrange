@@ -48,6 +48,7 @@ private:
 
 public:
 	RateModel(int na, bool ge, vector<double> pers,bool);
+	vector<string> get_labels();
 	void set_nthreads(int nthreads);
 	int get_nthreads();
 	void setup_dists();

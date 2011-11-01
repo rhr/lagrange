@@ -34,6 +34,10 @@ using namespace arma;
 RateModel::RateModel(int na, bool ge, vector<double> pers, bool sp):
 	globalext(ge),nareas(na),numthreads(0),periods(pers),sparse(sp){}
 
+vector<string> RateModel::get_labels(){
+	return labels;
+}
+
 void RateModel::set_nthreads(int nthreads){
 	numthreads = nthreads;
 }

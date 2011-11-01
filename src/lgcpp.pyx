@@ -83,6 +83,7 @@ cdef BranchSegment branchsegment_factory(_BranchSegment *p):
 cdef extern from "RateModel.h":
     cdef cppclass _RateModel "RateModel":
         _RateModel(int, bool, vector[double], bool)
+        vector[string] get_labels()
         void set_nthreads(int)
         int get_nthreads()
         void setup_dists()
@@ -182,10 +183,17 @@ cdef extern from "AncSplit.h":
         _Superdouble getLikelihood()
         int ancdistint, ldescdistint, rdescdistint
 
-cdef class AncSplit:
-    cdef _AncSplit* ptr
-    def __cinit__(self, RateModel m, int dist, int ldesc, int rdesc, Superdouble w):
-        self.ptr = new _AncSplit(m.ptr, dist, ldesc, rdesc, deref(w.ptr))
+## cdef class AncSplit:
+##     cdef _AncSplit* ptr
+##     def __cinit__(self, RateModel m, int dist, int ldesc, int rdesc, Superdouble w):
+##         self.ptr = new _AncSplit(m.ptr, dist, ldesc, rdesc, deref(w.ptr))
+
+cdef extern from "BioGeoTreeTools.h":
+    cdef cppclass _BioGeoTreeTools "BioGeoTreeTools":
+        void summarizeSplits(_Node *,
+                             map[vector[int],vector[_AncSplit]] &,
+                             map[int,string] &, _RateModel *)
+        
 
 cdef extern from "OptimizeBioGeo.h":
     cdef cppclass _OptimizeBioGeo "OptimizeBioGeo":
@@ -233,7 +241,7 @@ cdef class BioGeoTree:
 
     def optimize_global_dispersal_extinction(self, bool marginal, RateModel m):
         cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
-        print "InitL:", initL
+        print "Init L:", initL
         cdef _OptimizeBioGeo* opt = new _OptimizeBioGeo(self.ptr, m.ptr, marginal)
         cdef vector[double] disext = opt.optimize_global_dispersal_extinction()
         print "D:", disext[0]
@@ -247,13 +255,29 @@ cdef class BioGeoTree:
         print "final L:", finalL
         self.ptr.set_store_p_matrices(False)
         
-    def ancsplits(self, Tree intree, bool marginal):
-        cdef int n = intree.getInternalNodeCount()
+    def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
+        cdef int n = intree.ptr.getInternalNodeCount()
         cdef int i
         cdef _Node* node
+        cdef map[vector[int],vector[_AncSplit]] ras
+        cdef map[int,string] area_i2s
+        cdef _BioGeoTreeTools tt
+        #cdef vector[map[vector[int],vector[_AncSplit]]] rasv
+        ## cdef vector[string] labels = m.ptr.get_labels()
+        ## print labels.size()
+        ## for i in range(labels.size()):
+        ##     print i, labels[i].c_str()
+        ##     area_i2s[i] = labels[i]
+
+        self.ptr.set_use_stored_matrices(True)
+        self.ptr.prepare_ancstate_reverse()
+
         for i in range(n):
+            print i
             node = intree.ptr.getInternalNode(i)
-            self.ptr.calculate_ancsplit_reverse(<_Node&>addr(node), marginal)
+            ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
+            tt.summarizeSplits(node, ras, area_i2s, m.ptr)
+            #rasv.push_back(deref(ras))
         
 
 cdef extern from "InputReader.h":

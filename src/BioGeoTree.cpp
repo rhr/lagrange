@@ -569,6 +569,7 @@ map<vector<int>,vector<AncSplit> > BioGeoTree::calculate_ancsplit_reverse(Node &
 		}
 	    }
 	}
+
 	ret[dist] = ans;
     }
     return ret;
