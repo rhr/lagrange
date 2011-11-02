@@ -235,6 +235,12 @@ cdef class BioGeoTree:
         self.ptr = new _BioGeoTree(t.ptr, v)
     def __dealloc__(self):
         del self.ptr
+    def set_store_p_matrices(self, bool b):
+        self.ptr.set_store_p_matrices(b)
+    def set_use_stored_matrices(self, bool b):
+        self.ptr.set_use_stored_matrices(b)
+    def update_default_model(self, RateModel m):
+        self.ptr.update_default_model(m.ptr)
     def set_default_model(self, RateModel m):
         self.ptr.set_default_model(m.ptr)
     def set_tip_conditionals(self, data):
@@ -289,19 +295,20 @@ cdef class BioGeoTree:
             area_i2s[i] = string(<char *>a)
 
         d = {}
-        for i in range(n):
-            print "ancestral splits for node %s:" % i
+        for i in range(n+1):
+            print 'i is', i
             node = intree.ptr.getInternalNode(i)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
             it = summary.begin()
             v = []
             while it != summary.end():
-                print isnan(super2double(deref(it).first))
+                #print super2double(deref(it).first)
                 lnl = log(super2double(deref(it).first))
                 v.append((lnl, deref(it).second.c_str()))
                 inc(it)
             d[i] = v
+            print 'here'
         print >> sys.stderr, "Done"
         return d
             

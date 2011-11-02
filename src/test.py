@@ -1,5 +1,6 @@
-import lgcpp
+import lgcpp, ivy
 from pprint import pprint
+from ivy.interactive import *
 
 def rng2dist(rng, nareas):
     v = [0]*nareas
@@ -16,19 +17,19 @@ ranges = d['ranges']
 data = d['taxon_range_data']
 newick = d['newick_trees'][0]['newick']
 
-def showtree():
+def showtree(r):
     from ivy.vis.symbols import tipsquares
     tango = ivy.vis.colors.tango()
     gray = ivy.vis.colors.tango_colors['Aluminium3']
     colors = [ tango.next() for x in areas ]
 
-    f = treefig(newick)
+    f = treefig(r)
     leaves = f.root.leaves()
     for lf in leaves:
         v = [gray]*nareas
-        for i in data[lf.label]:
-            v[i] = colors[i]
-        f.detail.decorate(tipsquares, lf, v)
+        for i, val in enumerate(data[lf.label]):
+            if val: v[i] = colors[i]
+        f.detail.decorate(tipsquares, lf, v, size=8)
 
 V = [ [ 0 for x in areas ] for r in ranges ]
 for i, r in enumerate(ranges):
@@ -40,7 +41,7 @@ for k, v in data.items():
     data[k] = rng2dist(v, nareas)
 
 t = lgcpp.readtree(newick)
-## print t.newick()
+r = ivy.tree.read(t.newick())
 
 ge = True; sparse = False
 model = lgcpp.RateModel(len(areas), ge, periods, sparse)
@@ -56,5 +57,12 @@ bgt.set_default_model(model)
 bgt.set_tip_conditionals(data)
 marginal = True
 bgt.optimize_global_dispersal_extinction(marginal, model)
-pprint(bgt.ancsplits(t, marginal, model, areas))
+n2split = bgt.ancsplits(t, marginal, model, areas)
 
+#pprint(n2split)
+
+for n in r.preiter(lambda x:x.children):
+    i = int(n.label)+1
+    print "ancestral splits for node %s:" % i
+    for lnl, s in n2split[i]:
+        print " ", lnl, s
