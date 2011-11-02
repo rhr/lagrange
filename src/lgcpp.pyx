@@ -42,6 +42,8 @@ cdef extern from "node.h":
         _Node()
         string getName()
         vector[_BranchSegment]* getSegVector()
+        string getNewick(bool)
+        string getNewick(bool,string)
 
 cdef class Node:
     cdef _Node* ptr
@@ -141,6 +143,7 @@ cdef extern from "tree.h":
         int getInternalNodeCount()
         _Node* getExternalNode(int)
         _Node* getInternalNode(int)
+        _Node* getRoot()
 
 cdef class Tree:
     cdef _Tree* ptr
@@ -161,6 +164,9 @@ cdef class Tree:
     def internalNodes(self):
         cdef int n = self.ptr.getInternalNodeCount()
         return [ node_factory(self.ptr.getInternalNode(i)) for i in range(n) ]
+    def newick(self):
+        cdef string s = string(<char *>"number")
+        return "".join([self.ptr.getRoot().getNewick(True, s).c_str(),';'])
 
 cdef extern from "tree_reader.h":
     cdef cppclass _TreeReader "TreeReader":

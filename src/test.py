@@ -56,3 +56,5 @@ bgt.set_tip_conditionals(data)
 marginal = True
 bgt.optimize_global_dispersal_extinction(marginal, model)
 pprint(bgt.ancsplits(t, marginal, model, areas))
+
+print t.newick()
