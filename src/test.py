@@ -1,4 +1,5 @@
 import lgcpp
+from pprint import pprint
 
 def rng2dist(rng, nareas):
     v = [0]*nareas
@@ -54,4 +55,4 @@ bgt.set_default_model(model)
 bgt.set_tip_conditionals(data)
 marginal = True
 bgt.optimize_global_dispersal_extinction(marginal, model)
-bgt.ancsplits(t, marginal, model, areas)
+pprint(bgt.ancsplits(t, marginal, model, areas))

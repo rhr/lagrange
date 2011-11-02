@@ -267,6 +267,7 @@ cdef class BioGeoTree:
         cdef _BioGeoTreeTools tt
         cdef map[_Superdouble,string]* summary
         cdef map[_Superdouble,string].iterator it
+        cdef double lnl
 
         self.ptr.set_use_stored_matrices(True)
         self.ptr.prepare_ancstate_reverse()
@@ -274,15 +275,21 @@ cdef class BioGeoTree:
         for i, a in enumerate(areas):
             area_i2s[i] = string(<char *>a)
 
+        d = {}
         for i in range(n):
             print "Node", i
             node = intree.ptr.getInternalNode(i)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
             it = summary.begin()
+            v = []
             while it != summary.end():
-                print log(super2double(deref(it).first)), deref(it).second.c_str()
+                lnl = log(super2double(deref(it).first))
+                v.append((lnl, deref(it).second.c_str()))
+                #split = 
                 inc(it)
+            d[i] = v
+        return d
             
 
 cdef extern from "InputReader.h":
