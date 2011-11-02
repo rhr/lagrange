@@ -1,4 +1,9 @@
 import sys, os
+import distutils.sysconfig
+
+libpath = distutils.sysconfig.get_python_lib()
+
+PATH = os.environ['PATH'].split(":")
 
 env = Environment(
     tools=['default','gfortran'],
@@ -9,9 +14,11 @@ env = Environment(
     LIBPATH=['/home/rree/mypy/lib']
     )
 
-py_version_name = 'python' + sys.version[:3]
-py_header_path = os.path.join(sys.exec_prefix, 'include', py_version_name)
-env.Append(CPPPATH=py_header_path)
+## py_version_name = 'python' + sys.version[:3]
+## py_header_path = os.path.join(sys.exec_prefix, 'include', py_version_name)
+py_inc = [distutils.sysconfig.get_python_inc()]
+print "PY_INC", py_inc
+env.Append(CPPPATH=py_inc)
 
 conf = Configure(env)
 if not conf.CheckLib('nlopt'):
@@ -22,6 +29,14 @@ if not conf.CheckHeader('Python.h'):
     Exit(1)
 
 env = conf.Finish()
+
+# create cpp file from pyx
+cython = FindFile('cython', PATH)
+cythonize = Builder(action="%s --cplus $SOURCE" % cython,
+                    suffix=".cpp", src_suffix=".pyx")
+env['BUILDERS']['Cythonize'] = cythonize
+lgcpp_source = env.Cythonize('lgcpp')
+
 
 fortran_sources = [
     "clock.f",
@@ -56,10 +71,13 @@ superdouble.cpp
 
 ## objects = env.Object(source=fortran_sources+cpp_sources)
 
-env.SharedLibrary(
+lgcpp_module = env.SharedLibrary(
     'lgcpp', fortran_sources+cpp_sources,#objects,
     SHLIBPREFIX='',
     LIBS=['m','nlopt','gsl','gslcblas','pthread','lapack','blas'],
     CXXFLAGS=['-fopenmp','-O2','-pthread','-fno-strict-aliasing','-g',
               '-Wall','-fPIC','-fwrapv']
     )
+
+env.Install(libpath, lgcpp_module)
+env.Alias('install', libpath)
