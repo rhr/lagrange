@@ -298,7 +298,7 @@ cdef class BioGeoTree:
             area_i2s[i] = string(<char *>a)
 
         d = {}
-        for i in range(n+1):
+        for i in range(n):
             print 'i is', i
             node = intree.ptr.getInternalNode(i)
             print 'node:', node.getNumber()
