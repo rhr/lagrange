@@ -40,6 +40,7 @@ for k, v in data.items():
     data[k] = rng2dist(v, nareas)
 
 t = lgcpp.readtree(newick)
+## print t.newick()
 
 ge = True; sparse = False
 model = lgcpp.RateModel(len(areas), ge, periods, sparse)
@@ -57,4 +58,3 @@ marginal = True
 bgt.optimize_global_dispersal_extinction(marginal, model)
 pprint(bgt.ancsplits(t, marginal, model, areas))
 
-print t.newick()

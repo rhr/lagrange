@@ -17,7 +17,6 @@ env = Environment(
 ## py_version_name = 'python' + sys.version[:3]
 ## py_header_path = os.path.join(sys.exec_prefix, 'include', py_version_name)
 py_inc = [distutils.sysconfig.get_python_inc()]
-print "PY_INC", py_inc
 env.Append(CPPPATH=py_inc)
 
 conf = Configure(env)

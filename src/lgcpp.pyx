@@ -1,3 +1,4 @@
+import sys
 from math import log
 from cython.operator cimport dereference as deref, preincrement as inc
 from cython import address as addr
@@ -6,6 +7,9 @@ from libcpp cimport bool
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp.map cimport map
+
+cdef extern from "math.h": 
+    bint isnan(double x)
 
 cdef extern from "superdouble.h":
     cdef cppclass _Superdouble "Superdouble":
@@ -250,21 +254,24 @@ cdef class BioGeoTree:
 
     def optimize_global_dispersal_extinction(self, bool marginal, RateModel m):
         cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
-        print "Init L:", initL
+        print >> sys.stderr, "optimizing rate parameters..."
         cdef _OptimizeBioGeo* opt = new _OptimizeBioGeo(self.ptr, m.ptr, marginal)
         cdef vector[double] disext = opt.optimize_global_dispersal_extinction()
-        print "D:", disext[0]
-        print "E:", disext[1]
+        print "dispersal rate:", disext[0]
+        print "local extinction rate:", disext[1]
+        print
         m.setup_D(disext[0])
         m.setup_E(disext[1])
         m.setup_Q()
         self.ptr.update_default_model(m.ptr)
         self.ptr.set_store_p_matrices(True)
         cdef double finalL = super2double(self.ptr.eval_likelihood(marginal))
-        print "final L:", finalL
-        self.ptr.set_store_p_matrices(False)
+        print "log-likelihood:", finalL
+        print
+        ## self.ptr.set_store_p_matrices(False)
         
     def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
+        print >> sys.stderr, "calculating ancestral splits..."
         cdef int n = intree.ptr.getInternalNodeCount()
         cdef int i
         cdef _Node* node
@@ -283,18 +290,19 @@ cdef class BioGeoTree:
 
         d = {}
         for i in range(n):
-            print "Node", i
+            print "ancestral splits for node %s:" % i
             node = intree.ptr.getInternalNode(i)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
             it = summary.begin()
             v = []
             while it != summary.end():
+                print isnan(super2double(deref(it).first))
                 lnl = log(super2double(deref(it).first))
                 v.append((lnl, deref(it).second.c_str()))
-                #split = 
                 inc(it)
             d[i] = v
+        print >> sys.stderr, "Done"
         return d
             
 
