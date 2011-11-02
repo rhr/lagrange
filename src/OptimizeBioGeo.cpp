@@ -36,7 +36,7 @@ double OptimizeBioGeo::GetLikelihoodWithOptimizedDispersalExtinction(const gsl_v
 	like = tree->eval_likelihood(marginal);
 	if(like < 0 || like == std::numeric_limits<double>::infinity())
 		like = 100000000;
-	//cout << "dis: "<< dispersal << " ext: " << extinction << " like: "<< like << endl;
+	cout << "dis: "<< dispersal << " ext: " << extinction << " like: "<< like << endl;
 	return like;
 }
 
@@ -82,7 +82,7 @@ vector<double> OptimizeBioGeo::optimize_global_dispersal_extinction(){
 	gsl_multimin_fminimizer_set (s, &minex_func, x, ss);
 	do
 	{
-		cout<<"Now on iteration "<<iter<<endl;
+		//cout<<"Now on iteration "<<iter<<endl;
 		iter++;
 		status = gsl_multimin_fminimizer_iterate(s);
 		if (status!=0) { //0 Means it's a success

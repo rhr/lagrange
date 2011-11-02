@@ -333,7 +333,7 @@ cdef class BioGeoTree:
                 ## print lnl, deref(it).second.c_str(), prop
                 v.append((lnl, prop, deref(it).second.c_str()))
                 inc(it)
-            d[i+1] = v
+            d[i+1] = list(reversed(sorted(v)))
             ## print 'here'
         print >> sys.stderr, "Done"
         return d
