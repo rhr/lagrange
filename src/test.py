@@ -62,7 +62,7 @@ n2split = bgt.ancsplits(t, marginal, model, areas)
 #pprint(n2split)
 
 for n in r.preiter(lambda x:x.children):
-    i = int(n.label)+1
+    i = int(n.label)
     print "ancestral splits for node %s:" % i
     for lnl, s in n2split[i]:
         print " ", lnl, s

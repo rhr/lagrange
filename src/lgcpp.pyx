@@ -48,7 +48,8 @@ cdef extern from "node.h":
         vector[_BranchSegment]* getSegVector()
         string getNewick(bool)
         string getNewick(bool,string)
-
+        int getNumber()
+        
 cdef class Node:
     cdef _Node* ptr
     def __cinit__(self):
@@ -57,6 +58,8 @@ cdef class Node:
         del self.ptr
     def getName(self):
         return self.ptr.getName().c_str()
+    def getNumber(self):
+        return self.ptr.getNumber()
     ## def set_tip_conditional(self, double i):
     ##     cdef vector[_BranchSegment]* v = self.ptr.getSegVector()
     ##     cdef _BranchSegment seg = deref(v.at(0))
@@ -298,6 +301,7 @@ cdef class BioGeoTree:
         for i in range(n+1):
             print 'i is', i
             node = intree.ptr.getInternalNode(i)
+            print 'node:', node.getNumber()
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
             it = summary.begin()
@@ -307,7 +311,7 @@ cdef class BioGeoTree:
                 lnl = log(super2double(deref(it).first))
                 v.append((lnl, deref(it).second.c_str()))
                 inc(it)
-            d[i] = v
+            d[i+1] = v
             print 'here'
         print >> sys.stderr, "Done"
         return d
