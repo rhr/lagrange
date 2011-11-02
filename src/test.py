@@ -58,11 +58,10 @@ bgt.set_tip_conditionals(data)
 marginal = True
 bgt.optimize_global_dispersal_extinction(marginal, model)
 n2split = bgt.ancsplits(t, marginal, model, areas)
-
 #pprint(n2split)
-
-for n in r.preiter(lambda x:x.children):
+nodes = list(r.preiter(lambda x:x.children))
+for n in nodes:
     i = int(n.label)
     print "ancestral splits for node %s:" % i
-    for lnl, s in n2split[i]:
-        print " ", lnl, s
+    for lnl, prop, s in n2split[i]:
+        print " ", lnl, prop, s

@@ -7,7 +7,7 @@ PATH = os.environ['PATH'].split(":")
 
 env = Environment(
     tools=['default','gfortran'],
-    FORTRANFLAGS=['-O3'],
+    ## FORTRANFLAGS=['-O3'],
     CXXFLAGS=['-O2','-pthread','-fno-strict-aliasing','-g',
               '-Wall','-fPIC','-fwrapv'],
     CPPPATH = ['.', '/home/rree/mypy/include'],

@@ -49,6 +49,7 @@ cdef extern from "node.h":
         string getNewick(bool)
         string getNewick(bool,string)
         int getNumber()
+        _Node * getParent()
         
 cdef class Node:
     cdef _Node* ptr
@@ -60,6 +61,8 @@ cdef class Node:
         return self.ptr.getName().c_str()
     def getNumber(self):
         return self.ptr.getNumber()
+    def getParent(self):
+        return node_factory(self.ptr.getParent())
     ## def set_tip_conditional(self, double i):
     ##     cdef vector[_BranchSegment]* v = self.ptr.getSegVector()
     ##     cdef _BranchSegment seg = deref(v.at(0))
@@ -162,6 +165,8 @@ cdef class Tree:
         return self.ptr.getNodeCount()
     def getExternalNodeCount(self):
         return self.ptr.getExternalNodeCount()
+    def getInternalNodeCount(self):
+        return self.ptr.getInternalNodeCount()
     def getExternalNode(self, int i):
         cdef _Node* p = self.ptr.getExternalNode(i)
         return node_factory(p)
@@ -282,9 +287,13 @@ cdef class BioGeoTree:
     def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
         print >> sys.stderr, "calculating ancestral splits..."
         cdef int n = intree.ptr.getInternalNodeCount()
-        cdef int i
+        cdef int i, j
         cdef _Node* node
         cdef map[vector[int],vector[_AncSplit]] ras
+        cdef map[vector[int],vector[_AncSplit]].iterator rasit
+        cdef vector[_AncSplit]* tans
+        cdef vector[_AncSplit].iterator tansit
+        cdef _AncSplit* ancsplit
         cdef map[int,string] area_i2s
         cdef _BioGeoTreeTools tt
         cdef map[_Superdouble,string]* summary
@@ -299,20 +308,33 @@ cdef class BioGeoTree:
 
         d = {}
         for i in range(n):
-            print 'i is', i
+            totL = 0.0
+            ## print 'i is', i
             node = intree.ptr.getInternalNode(i)
-            print 'node:', node.getNumber()
+            ## print 'node:', node.getNumber()
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
+            rasit = ras.begin()
+            while rasit != ras.end():
+                tans = &deref(rasit).second
+                tansit = tans.begin()
+                while tansit != tans.end():
+                    #ancsplit = deref(tansit)
+                    totL += super2double(deref(tansit).getLikelihood())
+                    inc(tansit)
+                inc(rasit)
+
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
             it = summary.begin()
             v = []
             while it != summary.end():
                 #print super2double(deref(it).first)
+                prop = super2double(deref(it).first)/totL
                 lnl = log(super2double(deref(it).first))
-                v.append((lnl, deref(it).second.c_str()))
+                ## print lnl, deref(it).second.c_str(), prop
+                v.append((lnl, prop, deref(it).second.c_str()))
                 inc(it)
             d[i+1] = v
-            print 'here'
+            ## print 'here'
         print >> sys.stderr, "Done"
         return d
             
