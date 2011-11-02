@@ -52,4 +52,6 @@ model.setup_Q()
 bgt = lgcpp.BioGeoTree(t, periods)
 bgt.set_default_model(model)
 bgt.set_tip_conditionals(data)
-bgt.optimize_global_dispersal_extinction(True, model)
+marginal = True
+bgt.optimize_global_dispersal_extinction(marginal, model)
+bgt.ancsplits(t, marginal, model, areas)

@@ -38,7 +38,7 @@ vector<Node *> BioGeoTreeTools::getAncestors(Tree & tree, Node & nodeId){
     return nodes;
 }
 
-void BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSplit> > & ans,map<int,string> &areanamemaprev, RateModel * rm){
+map<Superdouble,string > * BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSplit> > & ans,map<int,string> &areanamemaprev, RateModel * rm){
     Superdouble best(0);
     Superdouble sum(0);
     map<Superdouble,string > printstring;
@@ -107,7 +107,7 @@ void BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSpli
     map<Superdouble,string >::reverse_iterator pit;
     for(pit=printstring.rbegin();pit != printstring.rend();pit++){
 	Superdouble lnl(((*pit).first));
-	cout << "\t" << (*pit).second << "\t" << double(lnl/sum) << "\t(" << double(none*lnl.getLn())<< ")"<< endl;
+	// cout << "\t" << (*pit).second << "\t" << double(lnl/sum) << "\t(" << double(none*lnl.getLn())<< ")"<< endl;
     }
     StringNodeObject disstring ="";
     int  count = 0;
@@ -133,6 +133,7 @@ void BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSpli
     string spl = "split";
     node->assocObject(spl,disstring);
     //cout << -log(best) << " "<< best/sum << endl;
+    return &printstring;
 }
 
 

@@ -1,3 +1,4 @@
+from math import log
 from cython.operator cimport dereference as deref, preincrement as inc
 from cython import address as addr
 
@@ -190,9 +191,11 @@ cdef extern from "AncSplit.h":
 
 cdef extern from "BioGeoTreeTools.h":
     cdef cppclass _BioGeoTreeTools "BioGeoTreeTools":
-        void summarizeSplits(_Node *,
-                             map[vector[int],vector[_AncSplit]] &,
-                             map[int,string] &, _RateModel *)
+        map[_Superdouble,string]* summarizeSplits(
+            _Node *,
+            map[vector[int],vector[_AncSplit]] &,
+            map[int,string] &, _RateModel *
+            )
         
 
 cdef extern from "OptimizeBioGeo.h":
@@ -262,6 +265,8 @@ cdef class BioGeoTree:
         cdef map[vector[int],vector[_AncSplit]] ras
         cdef map[int,string] area_i2s
         cdef _BioGeoTreeTools tt
+        cdef map[_Superdouble,string]* summary
+        cdef map[_Superdouble,string].iterator it
 
         self.ptr.set_use_stored_matrices(True)
         self.ptr.prepare_ancstate_reverse()
@@ -270,10 +275,15 @@ cdef class BioGeoTree:
             area_i2s[i] = string(<char *>a)
 
         for i in range(n):
-            print i
+            print "Node", i
             node = intree.ptr.getInternalNode(i)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
-            tt.summarizeSplits(node, ras, area_i2s, m.ptr)
+            summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
+            it = summary.begin()
+            while it != summary.end():
+                print log(super2double(deref(it).first)), deref(it).second.c_str()
+                inc(it)
+            
 
 cdef extern from "InputReader.h":
     cdef cppclass _InputReader "InputReader":
