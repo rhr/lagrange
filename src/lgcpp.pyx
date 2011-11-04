@@ -207,15 +207,6 @@ cdef extern from "AncSplit.h":
 ##     def __cinit__(self, RateModel m, int dist, int ldesc, int rdesc, Superdouble w):
 ##         self.ptr = new _AncSplit(m.ptr, dist, ldesc, rdesc, deref(w.ptr))
 
-cdef extern from "BioGeoTreeTools.h":
-    cdef cppclass _BioGeoTreeTools "BioGeoTreeTools":
-        map[_Superdouble,string]* summarizeSplits(
-            _Node *,
-            map[vector[int],vector[_AncSplit]] &,
-            map[int,string] &, _RateModel *
-            )
-        
-
 cdef extern from "OptimizeBioGeo.h":
     cdef cppclass _OptimizeBioGeo "OptimizeBioGeo":
         _OptimizeBioGeo(_BioGeoTree*, _RateModel*, bool)
@@ -234,6 +225,11 @@ cdef extern from "BioGeoTree.h":
         void prepare_ancstate_reverse()
         map[vector[int],vector[_AncSplit]] calculate_ancsplit_reverse(_Node &,bool)
         vector[_Superdouble] calculate_ancstate_reverse(_Node &,bool)
+        void set_excluded_dist(vector[int], _Node*)
+        void setFossilatNodeByMRCA(vector[string], int);
+	void setFossilatNodeByMRCA_id(_Node *, int);
+	void setFossilatBranchByMRCA(vector[string], int, double);
+	void setFossilatBranchByMRCA_id(_Node *, int, double);
         
 cdef class BioGeoTree:
     cdef _BioGeoTree* ptr
@@ -251,6 +247,12 @@ cdef class BioGeoTree:
         self.ptr.update_default_model(m.ptr)
     def set_default_model(self, RateModel m):
         self.ptr.set_default_model(m.ptr)
+    def set_excluded_dist(self, dist, Node n):
+        cdef vector[int] v = vector[int]()
+        cdef int x
+        for x in dist:
+            v.push_back(x)
+        self.ptr.set_excluded_dist(v, n.ptr)
     def set_tip_conditionals(self, data):
         cdef map[string,vector[int]] m = map[string,vector[int]]()
         #cdef string* s
@@ -337,8 +339,32 @@ cdef class BioGeoTree:
             ## print 'here'
         print >> sys.stderr, "Done"
         return d
-            
 
+    def setFossilatNodebyMRCA(self, names, int area):
+        cdef vector[string] v = vector[string]()
+        for s in names: v.push_back(s)
+        self.ptr.setFossilatNodebyMRCA(v, area)
+
+    def setFossilatNodebyMRCA_id(self, Node n, int area):
+        self.ptr.setFossilatNodebyMRCA_id(n.ptr, area)
+
+    def setFossilatBranchbyMRCA(self, names, int area, double age):
+        cdef vector[string] v = vector[string]()
+        for s in names: v.push_back(s)
+        self.ptr.setFossilatBranchByMRCA(v, area, age)
+
+    def setFossilatBranchbyMRCA_id(self, Node n, int area, double age):
+        self.ptr.setFossilatBranchByMRCA_id(n.ptr, area, age)
+
+            
+cdef extern from "BioGeoTreeTools.h":
+    cdef cppclass _BioGeoTreeTools "BioGeoTreeTools":
+        map[_Superdouble,string]* summarizeSplits(
+            _Node *,
+            map[vector[int],vector[_AncSplit]] &,
+            map[int,string] &, _RateModel *
+            )
+        
 cdef extern from "InputReader.h":
     cdef cppclass _InputReader "InputReader":
         _InputReader()
