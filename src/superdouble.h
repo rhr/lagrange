@@ -38,12 +38,12 @@ private:
 	bool stilldouble;
 	double upperlimit;
 	double lowerlimit;
-	void adjustDecimal();
 	friend ostream& operator<<(ostream& os, const Superdouble& x);
 	
 public:
 	Superdouble(long double mantissa=1.0, int exponent=0);
 	~Superdouble();
+	void adjustDecimal();
 	Superdouble operator* ( Superdouble x);
 	Superdouble operator* ( double x);
 	Superdouble operator/ ( Superdouble x);
@@ -70,4 +70,9 @@ public:
 	operator double() {return mantissa*pow(10.,exponent);};
 	
 };
+
+Superdouble super_add (Superdouble a, Superdouble b);
+Superdouble super_divide (Superdouble a, Superdouble b);
+Superdouble super_ln(Superdouble x);
+
 #endif

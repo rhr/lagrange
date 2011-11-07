@@ -389,6 +389,7 @@ void BioGeoTree::ancdist_conditional_lh(Node & node, bool marginal){
  */
 void BioGeoTree::setFossilatNodeByMRCA(vector<string> nodeNames, int fossilarea){
     Node * mrca = tree->getMRCA(nodeNames);
+    cerr << "Setting fossil in area " << fossilarea << " at node " << mrca->getNumber() << endl;
     vector<vector<int> > * dists = rootratemodel->getDists();
     for(unsigned int i=0;i<dists->size();i++){
 	if(dists->at(i).at(fossilarea) == 0){

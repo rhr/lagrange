@@ -83,6 +83,14 @@ Superdouble Superdouble::operator / ( Superdouble  x){
 	return result;
 }
 
+Superdouble super_divide (Superdouble  a, Superdouble  b){
+	a.adjustDecimal(); b.adjustDecimal();
+	Superdouble result(a.getMantissa()/b.getMantissa(),a.getExponent()-b.getExponent());
+	result.adjustDecimal();
+	//cerr << "super_divide: " << a << " " << b << " " << result << endl;
+	return result;
+}
+
 //add stilldouble
 Superdouble Superdouble::operator + ( Superdouble  x){
 
@@ -99,6 +107,24 @@ Superdouble Superdouble::operator + ( Superdouble  x){
 		return result;
 	}
 }
+
+Superdouble super_add (Superdouble  a, Superdouble  b){
+
+	//only tricky thing is converting them to same exponent
+	if (a.getMantissa()!=0) {
+		int exponentdif=b.getExponent()-a.getExponent();
+		Superdouble result(a.getMantissa()+(b.getMantissa()*(pow(10,exponentdif))),a.getExponent());
+		result.adjustDecimal();
+		return result;
+	}
+	else {
+		Superdouble result(b.getMantissa(),b.getExponent());
+		result.adjustDecimal();
+		return result;
+	}
+}
+
+
 
 //add stilldouble
 Superdouble Superdouble::operator - ( Superdouble  x){
@@ -253,6 +279,13 @@ void Superdouble::switch_sign(){
 Superdouble Superdouble::getLn(){
 	//ln(a * 10^b) = ln(a) + ln(10^b) = ln(a) + log10 (10^b) / log10 (e^1) = ln(a) + b/log10(e^1)
 	Superdouble result(log(mantissa)+(1.0*(exponent))/log10(exp(1)),0);
+	result.adjustDecimal();
+	return result;
+}
+
+Superdouble super_ln(Superdouble x){
+	//ln(a * 10^b) = ln(a) + ln(10^b) = ln(a) + log10 (10^b) / log10 (e^1) = ln(a) + b/log10(e^1)
+	Superdouble result(log(x.getMantissa())+(1.0*(x.getExponent()))/log10(exp(1)),0);
 	result.adjustDecimal();
 	return result;
 }

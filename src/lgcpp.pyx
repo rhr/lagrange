@@ -13,12 +13,13 @@ cdef extern from "math.h":
 
 cdef extern from "superdouble.h":
     cdef cppclass _Superdouble "Superdouble":
+        _Superdouble()
         _Superdouble(long double, int)
         _Superdouble operator/ (_Superdouble)
         _Superdouble operator+ (_Superdouble)
         _Superdouble operator- (_Superdouble)
         void operator++ ()
-        void operator -- ()
+        void operator-- ()
         ## void operator*= (Superdouble)
         ## void operator/= (Superdouble)
         ## void operator+= (Superdouble)
@@ -28,18 +29,40 @@ cdef extern from "superdouble.h":
         ## bool operator >= (const Superdouble&)const 
         ## bool operator <= (const Superdouble&)const 
         int getExponent()
-        double getMantissa()
+        _Superdouble add(_Superdouble)
+        void divideby(_Superdouble)
+        long double getMantissa()
         _Superdouble getLn()
         _Superdouble abs()
         void switch_sign()
+        void adjustDecimal()
+
+    _Superdouble super_add(_Superdouble, _Superdouble)
+    _Superdouble super_divide(_Superdouble, _Superdouble)
+    _Superdouble super_ln(_Superdouble)
+
+cdef _Superdouble * superptr(_Superdouble x):
+    return &x
 
 cdef class Superdouble:
     cdef _Superdouble* ptr
     def __cinit__(self, long double mantissa=1.0, int exponent=0):
         self.ptr = new _Superdouble(mantissa, exponent)
+    def __str__(self):
+        self.ptr.adjustDecimal()
+        return "%ge%d" % (self.ptr.getMantissa(), self.ptr.getExponent())
+    def __float__(self):
+        return float(str(self))
+    ## def getLn(self):
+    ##     return super_ln(self.ptr)
 
-cdef double super2double(_Superdouble x):
-    return x.getMantissa()*pow(10., x.getExponent())
+cdef Superdouble superdouble_factory(_Superdouble *p):
+    cdef Superdouble n = Superdouble.__new__(Superdouble)
+    n.ptr = p
+    return n
+
+## cdef long double super2double(_Superdouble x):
+##     return x.getMantissa()*pow(10., x.getExponent())
 
 cdef extern from "node.h":
     cdef cppclass _Node "Node":
@@ -226,10 +249,10 @@ cdef extern from "BioGeoTree.h":
         map[vector[int],vector[_AncSplit]] calculate_ancsplit_reverse(_Node &,bool)
         vector[_Superdouble] calculate_ancstate_reverse(_Node &,bool)
         void set_excluded_dist(vector[int], _Node*)
-        void setFossilatNodeByMRCA(vector[string], int);
-	void setFossilatNodeByMRCA_id(_Node *, int);
-	void setFossilatBranchByMRCA(vector[string], int, double);
-	void setFossilatBranchByMRCA_id(_Node *, int, double);
+        void setFossilatNodeByMRCA(vector[string], int)
+        void setFossilatNodeByMRCA_id(_Node *, int)
+        void setFossilatBranchByMRCA(vector[string], int, double)
+        void setFossilatBranchByMRCA_id(_Node *, int, double)
         
 cdef class BioGeoTree:
     cdef _BioGeoTree* ptr
@@ -269,38 +292,45 @@ cdef class BioGeoTree:
         self.ptr.set_tip_conditionals(m)
 
     def optimize_global_dispersal_extinction(self, bool marginal, RateModel m):
-        cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
+        ## cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
         print >> sys.stderr, "optimizing rate parameters..."
         cdef _OptimizeBioGeo* opt = new _OptimizeBioGeo(self.ptr, m.ptr, marginal)
         cdef vector[double] disext = opt.optimize_global_dispersal_extinction()
-        print "dispersal rate:", disext[0]
-        print "local extinction rate:", disext[1]
-        print
+        cdef double d, e, neglnL
+        d = disext[0]; e = disext[1]
+        ## print "dispersal rate:", disext[0]
+        ## print "local extinction rate:", disext[1]
+        ## print
         m.setup_D(disext[0])
         m.setup_E(disext[1])
         m.setup_Q()
         self.ptr.update_default_model(m.ptr)
         self.ptr.set_store_p_matrices(True)
-        cdef double finalL = super2double(self.ptr.eval_likelihood(marginal))
-        print "log-likelihood:", finalL
-        print
+        neglnL = float(superdouble_factory(superptr(self.ptr.eval_likelihood(marginal))))
+        ## print "-lnL:", neglnL
+        ## print
         ## self.ptr.set_store_p_matrices(False)
+        print >> sys.stderr, ("dispersal = %s; extinction = %s; -lnL = %s" %
+                              (d, e, neglnL))
+        return (d, e, neglnL)
         
     def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
         print >> sys.stderr, "calculating ancestral splits..."
         cdef int n = intree.ptr.getInternalNodeCount()
-        cdef int i, j
+        #print >> sys.stderr, "%s nodes" % n
+        cdef int i, j, k
         cdef _Node* node
         cdef map[vector[int],vector[_AncSplit]] ras
         cdef map[vector[int],vector[_AncSplit]].iterator rasit
         cdef vector[_AncSplit]* tans
         cdef vector[_AncSplit].iterator tansit
         cdef _AncSplit* ancsplit
-        cdef map[int,string] area_i2s
+        cdef map[int,string] area_i2s = map[int,string]()
         cdef _BioGeoTreeTools tt
-        cdef map[_Superdouble,string]* summary
+        cdef map[_Superdouble,string] summary
         cdef map[_Superdouble,string].iterator it
-        cdef double lnl
+        cdef _Superdouble totL
+        cdef _Superdouble* prop, lnl
 
         self.ptr.set_use_stored_matrices(True)
         self.ptr.prepare_ancstate_reverse()
@@ -310,10 +340,9 @@ cdef class BioGeoTree:
 
         d = {}
         for i in range(n):
-            totL = 0.0
             ## print 'i is', i
             node = intree.ptr.getInternalNode(i)
-            ## print 'node:', node.getNumber()
+            totL = _Superdouble(0,0)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             rasit = ras.begin()
             while rasit != ras.end():
@@ -321,36 +350,39 @@ cdef class BioGeoTree:
                 tansit = tans.begin()
                 while tansit != tans.end():
                     #ancsplit = deref(tansit)
-                    totL += super2double(deref(tansit).getLikelihood())
+                    totL += deref(tansit).getLikelihood()
                     inc(tansit)
                 inc(rasit)
+            #print "totL:", superdouble_factory(&totL)
 
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
+            #print >> sys.stderr, 'node %s (summary: %s)' % (i, summary.size())
+            k = 0
             it = summary.begin()
             v = []
             while it != summary.end():
-                #print super2double(deref(it).first)
-                prop = super2double(deref(it).first)/totL
-                lnl = log(super2double(deref(it).first))
-                ## print lnl, deref(it).second.c_str(), prop
-                v.append((lnl, prop, deref(it).second.c_str()))
+                prop = superptr(super_divide(deref(it).first, totL))
+                #print "prop", float(superdouble_factory(prop))
+                v.append((float(superdouble_factory(superptr(super_ln(deref(it).first)))),
+                          float(superdouble_factory(prop)),
+                          deref(it).second.c_str()))
                 inc(it)
+                k += 1
             d[i+1] = list(reversed(sorted(v)))
-            ## print 'here'
         print >> sys.stderr, "Done"
         return d
 
     def setFossilatNodebyMRCA(self, names, int area):
         cdef vector[string] v = vector[string]()
-        for s in names: v.push_back(s)
-        self.ptr.setFossilatNodebyMRCA(v, area)
+        for s in names: v.push_back(string(<char *>s))
+        self.ptr.setFossilatNodeByMRCA(v, area)
 
     def setFossilatNodebyMRCA_id(self, Node n, int area):
-        self.ptr.setFossilatNodebyMRCA_id(n.ptr, area)
+        self.ptr.setFossilatNodeByMRCA_id(n.ptr, area)
 
     def setFossilatBranchbyMRCA(self, names, int area, double age):
         cdef vector[string] v = vector[string]()
-        for s in names: v.push_back(s)
+        for s in names: v.push_back(string(<char *>s))
         self.ptr.setFossilatBranchByMRCA(v, area, age)
 
     def setFossilatBranchbyMRCA_id(self, Node n, int area, double age):
@@ -359,7 +391,7 @@ cdef class BioGeoTree:
             
 cdef extern from "BioGeoTreeTools.h":
     cdef cppclass _BioGeoTreeTools "BioGeoTreeTools":
-        map[_Superdouble,string]* summarizeSplits(
+        map[_Superdouble,string] summarizeSplits(
             _Node *,
             map[vector[int],vector[_AncSplit]] &,
             map[int,string] &, _RateModel *

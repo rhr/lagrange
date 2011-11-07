@@ -36,7 +36,7 @@ double OptimizeBioGeo::GetLikelihoodWithOptimizedDispersalExtinction(const gsl_v
 	like = tree->eval_likelihood(marginal);
 	if(like < 0 || like == std::numeric_limits<double>::infinity())
 		like = 100000000;
-	cerr << "dis: "<< dispersal << " ext: " << extinction << " like: "<< like << endl;
+	//cerr << "dis: "<< dispersal << " ext: " << extinction << " like: "<< like << endl;
 	return like;
 }
 

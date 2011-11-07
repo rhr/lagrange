@@ -55,13 +55,24 @@ model.setup_Q()
 bgt = lgcpp.BioGeoTree(t, periods)
 bgt.set_default_model(model)
 bgt.set_tip_conditionals(data)
+
+## labels = ['pentandra', 'itatiaiae', 'crenata', 'lanceolata', 'kleinii',
+##           'variabilis', 'celastrine', 'phaeoclado', 'bogotensis',
+##           'saxatilis', 'guadeloupe']
+## bgt.setFossilatNodebyMRCA(labels, 1)
+
 marginal = True
-bgt.optimize_global_dispersal_extinction(marginal, model)
-n2split = bgt.ancsplits(t, marginal, model, areas)
-#pprint(n2split)
-nodes = list(r.preiter(lambda x:x.children))
-for n in nodes:
-    i = int(n.label)
-    print "ancestral splits for node %s:" % i
-    for lnl, prop, s in n2split[i]:
-        print " ", lnl, prop, s
+d, e, neglnL = bgt.optimize_global_dispersal_extinction(marginal, model)
+
+n2split = dict([ (str(k), v) for k, v in
+                 bgt.ancsplits(t, marginal, model, areas).items() ])
+
+## #pprint(n2split)
+
+for n in r.preiter(lambda x:x.children):
+    print "for node %s:" % n.label
+    for lnl, prop, s in n2split[n.label]:
+        print "    %s, %s, %s" % (s, lnl, prop)
+
+## with open('test.results.py', 'w') as f:
+##     pprint((areas, data, t.newick(), n2split), f)

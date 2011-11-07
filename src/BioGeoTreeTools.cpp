@@ -38,7 +38,7 @@ vector<Node *> BioGeoTreeTools::getAncestors(Tree & tree, Node & nodeId){
     return nodes;
 }
 
-map<Superdouble,string > * BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSplit> > & ans,map<int,string> &areanamemaprev, RateModel * rm){
+map<Superdouble,string > BioGeoTreeTools::summarizeSplits(Node * node,map<vector<int>,vector<AncSplit> > & ans,map<int,string> &areanamemaprev, RateModel * rm){
     Superdouble best(0);
     Superdouble sum(0);
     map<Superdouble,string > printstring;
@@ -133,7 +133,7 @@ map<Superdouble,string > * BioGeoTreeTools::summarizeSplits(Node * node,map<vect
     string spl = "split";
     node->assocObject(spl,disstring);
     //cout << -log(best) << " "<< best/sum << endl;
-    return &printstring;
+    return printstring;
 }
 
 
