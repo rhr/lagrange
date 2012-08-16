@@ -279,8 +279,7 @@ cdef class BioGeoTree:
     def set_excluded_dist(self, dist, Node n):
         cdef vector[int] v = vector[int]()
         cdef int x
-        for x in dist:
-            v.push_back(x)
+        for x in dist: v.push_back(x)
         self.ptr.set_excluded_dist(v, n.ptr)
     def set_tip_conditionals(self, data):
         cdef map[string,vector[int]] m #= map[string,vector[int]]()
