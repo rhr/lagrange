@@ -197,6 +197,9 @@ cdef class Tree:
     def getInternalNode(self, int i):
         cdef _Node* p = self.ptr.getInternalNode(i)
         return node_factory(p)
+    def getRoot(self):
+        cdef _Node* p = self.ptr.getRoot()
+        return node_factory(p)
     def getMRCA(self, names):
         cdef vector[string] v = vector[string]()
         for s in names: v.push_back(string(<char *>s))
