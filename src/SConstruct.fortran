@@ -1,6 +1,6 @@
 env = Environment(
     tools=['default','gfortran'],
-    FORTRANFLAGS='-O3',
+    FORTRANFLAGS='-O3 -fPIC',
     )
 
 sources = ["clock.f",

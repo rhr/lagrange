@@ -177,6 +177,7 @@ cdef extern from "tree.h":
         _Node* getExternalNode(int)
         _Node* getInternalNode(int)
         _Node* getRoot()
+        _Node* getMRCA(vector[string] innodes)
 
 cdef class Tree:
     cdef _Tree* ptr
@@ -195,6 +196,14 @@ cdef class Tree:
         return node_factory(p)
     def getInternalNode(self, int i):
         cdef _Node* p = self.ptr.getInternalNode(i)
+        return node_factory(p)
+    def getRoot(self):
+        cdef _Node* p = self.ptr.getRoot()
+        return node_factory(p)
+    def getMRCA(self, names):
+        cdef vector[string] v = vector[string]()
+        for s in names: v.push_back(string(<char *>s))
+        cdef _Node* p = self.ptr.getMRCA(v)
         return node_factory(p)
     def internalNodes(self):
         cdef int n = self.ptr.getInternalNodeCount()
@@ -273,8 +282,7 @@ cdef class BioGeoTree:
     def set_excluded_dist(self, dist, Node n):
         cdef vector[int] v = vector[int]()
         cdef int x
-        for x in dist:
-            v.push_back(x)
+        for x in dist: v.push_back(x)
         self.ptr.set_excluded_dist(v, n.ptr)
     def set_tip_conditionals(self, data):
         cdef map[string,vector[int]] m #= map[string,vector[int]]()

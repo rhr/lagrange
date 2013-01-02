@@ -84,7 +84,8 @@ INCLUDES = -I/home/rree/mypy/include
 # requires fortran, gsl, and pthread -- and -ldl -lutil -lpython2.6 are for python
 #-ldl -lutil -lpython2.6
 # if llapack lblas fail, try larmadillo
-LIBS := -llapack -lblas -lgfortran -lgsl -lgslcblas -lm -lpthread -lnlopt -fopenmp
+# LIBS := -llapack -lblas -lgfortran -lgsl -lgslcblas -lm -lpthread -lnlopt -fopenmp -larmadillo
+LIBS := -lgfortran -lgsl -lgslcblas -lm -lpthread -lnlopt -fopenmp -larmadillo
 
 
 #######

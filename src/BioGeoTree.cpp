@@ -51,7 +51,7 @@ BioGeoTree::BioGeoTree(Tree * tr, vector<double> ps):tree(tr),periods(ps),
     /*
      * initialize each node with segments
      */
-    cerr << "initializing nodes..." << endl;
+    //cerr << "initializing nodes..." << endl;
     for(int i=0;i<tree->getNodeCount();i++){
 	if(tree->getNode(i)->getBL()<0.000001)
 	    tree->getNode(i)->setBL(0.000001);
@@ -62,7 +62,7 @@ BioGeoTree::BioGeoTree(Tree * tr, vector<double> ps):tree(tr),periods(ps),
      * initialize the actual branch segments for each node
      */
     tree->setHeightFromTipToNodes();
-    cerr << "initializing branch segments..." << endl;
+    //cerr << "initializing branch segments..." << endl;
     for(int i=0;i<tree->getNodeCount();i++){
 	//cerr << "node " << i+1 << " of " << tree->getNodeCount() << endl;
 	if (tree->getNode(i)->hasParent()){

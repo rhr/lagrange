@@ -41,7 +41,7 @@ fortran_sources = [
     ## "clock.f",
     "my_expokit.f",
     ## "mataid.f",
-    "my_matexp.f"
+    "my_matexp.f",
     ## "blas.f",
     ## "lapack.f",
     ]
@@ -72,8 +72,10 @@ superdouble.cpp
 
 lgcpp_module = env.SharedLibrary(
     'lgcpp', fortran_sources+cpp_sources,#objects,
+    ## 'lgcpp', cpp_sources,#objects,
     SHLIBPREFIX='',
-    LIBS=['m','nlopt','gsl','gslcblas','pthread','lapack','blas'],
+    LIBS=['m','nlopt','gsl','gslcblas','pthread','lapack','blas','gfortran'],
+    ## LIBS=['m','nlopt','gsl','gslcblas','pthread'],
     CXXFLAGS=['-fopenmp','-O2','-pthread','-fno-strict-aliasing','-g',
               '-Wall','-fPIC','-fwrapv']
     )
