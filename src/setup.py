@@ -34,8 +34,8 @@ ext = Extension(
         "superdouble.o",
         "clock.o",
         "mataid.o",
-        "blas.o",
-        "lapack.o",
+        ## "blas.o",
+        ## "lapack.o",
         "my_expokit.o",
         "my_matexp.o"
         ]

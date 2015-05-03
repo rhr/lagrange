@@ -80,6 +80,10 @@ Tree * TreeReader::readTree(string trees){
 				}
 			}// work on edge
 			double edd = strtod(edgeL.c_str(),NULL);
+			if (edd < 0) {
+				cout << "negative branch length: " << edd << endl;
+				edd = 0.00001;
+			}
 			currNode->setBL(edd);
 			x--;
 		}

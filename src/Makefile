@@ -133,7 +133,8 @@ lagrange_cpp: $(OBJS) $(FORT_OBJS)
 # All Target
 all: lagrange_cpp
 
-lgcpp.so: lgcpp.pyx
+lgcpp.so: $(OBJS) $(FORT_OBJS) lgcpp.pyx
+	touch lgcpp.pyx
 	python ./setup.py build_ext --inplace
 
 python: lgcpp.so

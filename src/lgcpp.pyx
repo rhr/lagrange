@@ -8,6 +8,15 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp.map cimport map
 
+cimport cython
+
+ctypedef fused int_or_str:
+    cython.int
+    cython.p_char
+    bytes
+    unicode
+    string
+    
 cdef extern from "math.h": 
     bint isnan(double x)
 
@@ -67,29 +76,75 @@ cdef Superdouble superdouble_factory(_Superdouble *p):
 cdef extern from "node.h":
     cdef cppclass _Node "Node":
         _Node()
+        bool isExternal()
+        bool isInternal()
+        vector[_Node*] getChildren()
         string getName()
         vector[_BranchSegment]* getSegVector()
         string getNewick(bool)
         string getNewick(bool,string)
         int getNumber()
         _Node * getParent()
+        vector[vector[int]] * getExclDistVector()
         
 cdef class Node:
     cdef _Node* ptr
     def __cinit__(self):
         self.ptr = NULL
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
+    def isExternal(self):
+        return self.ptr.isExternal()
+    def isInternal(self):
+        return self.ptr.isInternal()
+    def getChildren(self):
+        cdef vector[_Node*] v = self.ptr.getChildren()
+        cdef vector[_Node*].iterator it = v.begin()
+        children = []
+        while it != v.end():
+            children.append(node_factory(deref(it)))
+            inc(it)
+        return children
     def getName(self):
         return self.ptr.getName().c_str()
     def getNumber(self):
-        return self.ptr.getNumber()
+        cdef int n = self.ptr.getNumber()
+        return n
     def getParent(self):
-        return node_factory(self.ptr.getParent())
+        cdef _Node* p = self.ptr.getParent()
+        if p != NULL:
+            return node_factory(self.ptr.getParent())
+        return None
+    def getSegVector(self):
+        cdef vector[_BranchSegment] *v = self.ptr.getSegVector()
+        cdef vector[_BranchSegment].iterator it = deref(v).begin()
+        segs = []
+        while it != deref(v).end():
+            segs.append(branchsegment_factory(&deref(it)))
+            inc(it)
+        return segs
     ## def set_tip_conditional(self, double i):
     ##     cdef vector[_BranchSegment]* v = self.ptr.getSegVector()
     ##     cdef _BranchSegment seg = deref(v.at(0))
     ##     seg.distconds.at(i) = <double>i
+
+    def getExclDistVector(self):
+        return deref(self.ptr.getExclDistVector())
+
+    def iternodes(self, f=None):
+        """
+        generate a list of nodes descendant from self - including self
+        """
+        if (f and f(self)) or (not f):
+            yield self
+        for child in self.getChildren():
+            for n in child.iternodes():
+                if (f and f(n)) or (not f):
+                    yield n
+
+    def preiter(self, f=None):
+        for n in self.iternodes(f=f):
+            yield n
 
 cdef Node node_factory(_Node *p):
     cdef Node n = Node.__new__(Node)
@@ -100,16 +155,27 @@ cdef extern from "BranchSegment.h":
     cdef cppclass _BranchSegment "BranchSegment":
         _BranchSegment(double, int)
         vector[_Superdouble]* distconds
-
+        vector[int] fossilareaindices
+        vector[int] getFossilAreas()
+        void setFossilArea(int)
+        
 cdef class BranchSegment:
     cdef _BranchSegment* ptr
     def __cinit__(self):
         self.ptr = NULL
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
     ## property distconds:
     ##     def __get__(self):
     ##         return self.ptr.distconds
+    ## property fossilareaindices:
+    ##     def __get__(self):
+    ##         return self.ptr.fossilareaindices
+    def setFossilArea(self, int area):
+        ## print >> sys.stderr, 'setFossilArea: %s' % area
+        self.ptr.setFossilArea(area)
+    def getFossilAreas(self):
+        return self.ptr.getFossilAreas()
 
 cdef BranchSegment branchsegment_factory(_BranchSegment *p):
     cdef BranchSegment bs = BranchSegment.__new__(BranchSegment)
@@ -138,8 +204,8 @@ cdef class RateModel:
         cdef vector[double] v = vector[double]()
         for x in periods: v.push_back(x)
         self.ptr = new _RateModel(na, ge, v, is_sparse)
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
     def set_nthreads(self, int n):
         self.ptr.set_nthreads(n)
     def get_nthreads(self):
@@ -161,12 +227,14 @@ cdef class RateModel:
         self.ptr.setup_E(x)
     def setup_Q(self):
         self.ptr.setup_Q()
-                
     def setup_Dmask(self):
         self.ptr.setup_Dmask()
     def set_Dmask_cell(self, int period, int area, int area2,
                        double prob, bool sym):
         self.ptr.set_Dmask_cell(period, area, area2, prob, sym)
+    def getDists(self):
+        cdef vector[vector[int]] * dists = self.ptr.getDists()
+        return deref(dists)
 
 cdef extern from "tree.h":
     cdef cppclass _Tree "Tree":
@@ -174,8 +242,10 @@ cdef extern from "tree.h":
         int getNodeCount()
         int getExternalNodeCount()
         int getInternalNodeCount()
+        _Node* getExternalNode(string)
         _Node* getExternalNode(int)
         _Node* getInternalNode(int)
+        _Node* getInternalNode(string)
         _Node* getRoot()
         _Node* getMRCA(vector[string] innodes)
 
@@ -183,20 +253,35 @@ cdef class Tree:
     cdef _Tree* ptr
     def __cinit__(self):
         self.ptr = new _Tree()
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
     def getNodeCount(self):
         return self.ptr.getNodeCount()
     def getExternalNodeCount(self):
         return self.ptr.getExternalNodeCount()
     def getInternalNodeCount(self):
         return self.ptr.getInternalNodeCount()
-    def getExternalNode(self, int i):
-        cdef _Node* p = self.ptr.getExternalNode(i)
+    def getExternalNode(self, string s):
+        cdef _Node* p = self.ptr.getExternalNode(s)
         return node_factory(p)
-    def getInternalNode(self, int i):
-        cdef _Node* p = self.ptr.getInternalNode(i)
-        return node_factory(p)
+    ## def getExternalNode(self, int i):
+    ##     cdef _Node* p = self.ptr.getExternalNode(i)
+    ##     return node_factory(p)
+    def getInternalNode(self, int_or_str x):
+        cdef _Node* p
+        cdef Node n
+        if int_or_str is cython.int:
+            print >> sys.stderr, 'getInternalNode got int', x
+            p = self.ptr.getInternalNode(x)
+        elif int_or_str is cython.p_char:
+            print >> sys.stderr, 'getInternalNode got str', x
+            p = self.ptr.getInternalNode(string(<char *>x))
+        else:
+            raise ValueError
+        if p != NULL:
+            return node_factory(p)
+        else:
+            raise Exception
     def getRoot(self):
         cdef _Node* p = self.ptr.getRoot()
         return node_factory(p)
@@ -209,8 +294,8 @@ cdef class Tree:
         cdef int n = self.ptr.getInternalNodeCount()
         return [ node_factory(self.ptr.getInternalNode(i)) for i in range(n) ]
     def newick(self):
-        cdef string s = string(<char *>"number")
-        return "".join([self.ptr.getRoot().getNewick(True, s).c_str(),';'])
+        #cdef string s = string(<char *>"number")
+        return "".join([self.ptr.getRoot().getNewick(True).c_str(),';'])
 
 cdef extern from "tree_reader.h":
     cdef cppclass _TreeReader "TreeReader":
@@ -223,7 +308,7 @@ def readtree(s):
     cdef _Tree* tree = reader.readTree(<string>treestr)
     cdef Tree t = Tree()
     t.ptr = tree
-    del reader
+    ## del reader
     return t
 
 cdef extern from "AncSplit.h":
@@ -269,8 +354,8 @@ cdef class BioGeoTree:
         cdef vector[double] v = vector[double]()
         for x in periods: v.push_back(x)
         self.ptr = new _BioGeoTree(t.ptr, v)
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
     def set_store_p_matrices(self, bool b):
         self.ptr.set_store_p_matrices(b)
     def set_use_stored_matrices(self, bool b):
@@ -283,6 +368,8 @@ cdef class BioGeoTree:
         cdef vector[int] v = vector[int]()
         cdef int x
         for x in dist: v.push_back(x)
+        ## print >> sys.stderr, 'excluding {} from node {}'.format(
+        ##     dist, n.getName())
         self.ptr.set_excluded_dist(v, n.ptr)
     def set_tip_conditionals(self, data):
         cdef map[string,vector[int]] m #= map[string,vector[int]]()
@@ -376,7 +463,7 @@ cdef class BioGeoTree:
                           deref(it).second.c_str()))
                 inc(it)
                 k += 1
-            d[i+1] = list(reversed(sorted(v)))
+            d[node.getName().c_str()] = list(reversed(sorted(v)))
         print >> sys.stderr, "Done"
         return d
 
@@ -420,8 +507,8 @@ cdef class InputReader:
     def __cinit__(self):
         self.ptr = new _InputReader()
         ## self.trees = new vector[_Tree*]()
-    def __dealloc__(self):
-        del self.ptr
+    ## def __dealloc__(self):
+    ##     del self.ptr
 
     def read_treefile(self, filename):
         cdef string s = string(<char *>filename)
