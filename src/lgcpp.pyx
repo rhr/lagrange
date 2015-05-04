@@ -210,10 +210,10 @@ cdef class RateModel:
         self.ptr.set_nthreads(n)
     def get_nthreads(self):
         return self.ptr.get_nthreads()
-    def setup_dists(self, list indists=None, bool incl=True):
+    def setup_dists(self, indists=[], bool incl=True):
         cdef vector[vector[int]] v = vector[vector[int]]()
         cdef vector[int]* k
-        if indists:
+        if len(indists):
             for row in indists:
                 k = new vector[int]()
                 for x in row: k.push_back(x)
