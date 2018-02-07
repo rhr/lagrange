@@ -1,7 +1,7 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
-from Cython.Build import cythonize
+# from Cython.Build import cythonize
 
 ext = Extension(
     "lgcpp",

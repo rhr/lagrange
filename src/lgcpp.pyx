@@ -295,7 +295,7 @@ cdef class Tree:
         return [ node_factory(self.ptr.getInternalNode(i)) for i in range(n) ]
     def newick(self):
         #cdef string s = string(<char *>"number")
-        return "".join([self.ptr.getRoot().getNewick(True).c_str(),';'])
+        return "".join([self.ptr.getRoot().getNewick(True).decode('utf-8'),';'])
 
 cdef extern from "tree_reader.h":
     cdef cppclass _TreeReader "TreeReader":
@@ -304,7 +304,7 @@ cdef extern from "tree_reader.h":
 
 def readtree(s):
     cdef _TreeReader* reader = new _TreeReader()
-    cdef string treestr = string(<char *>s)
+    cdef string treestr = s.encode('utf-8')
     cdef _Tree* tree = reader.readTree(<string>treestr)
     cdef Tree t = Tree()
     t.ptr = tree
@@ -375,11 +375,14 @@ cdef class BioGeoTree:
         cdef map[string,vector[int]] m #= map[string,vector[int]]()
         #cdef string* s
         cdef vector[int]* dist
+        cdef string tiplabel
         for k, v in sorted(data.items()):
             #s = new string(<char *>k)
+            tiplabel = k.encode('utf-8')
             dist = new vector[int]()
-            for x in v: dist.push_back(x)
-            m[string(<char *>k)] = deref(dist)
+            for x in v:
+                dist.push_back(x)
+            m[tiplabel] = deref(dist)
         ## cdef map[string,vector[int]].iterator it = m.begin()
         ## while it != m.end():
         ##     print deref(it).first.c_str()#, deref(it).second

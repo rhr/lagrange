@@ -79,7 +79,7 @@ C_OPT = -O3 -ftree-vectorize -ffast-math -g3 -fPIC
 #if using octave
 #INCLUDES = -I/usr/include/octave-3.0.5/octave/
 #INCLUDES = -I/usr/include/octave-3.2.4/
-INCLUDES = -I/home/rree/mypy/include
+#INCLUDES = -I/home/rree/mypy/include
 
 # requires fortran, gsl, and pthread -- and -ldl -lutil -lpython2.6 are for python
 #-ldl -lutil -lpython2.6
