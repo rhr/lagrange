@@ -193,6 +193,7 @@ cdef extern from "RateModel.h":
         void setup_Dmask()
         void set_Dmask_cell(int, int, int, double, bool)
         void setup_D(double)
+        void setup_D_provided(double, vector[vector[vector[double]]])
         void setup_E(double)
         void set_Qdiag(int)
         void setup_Q()
@@ -223,6 +224,8 @@ cdef class RateModel:
             self.ptr.setup_dists()
     def setup_D(self, double x):
         self.ptr.setup_D(x)
+    def setup_D_provided(self, double d, vector[vector[vector[double]]] dmask):
+        self.ptr.setup_D_provided(d, dmask)
     def setup_E(self, double x):
         self.ptr.setup_E(x)
     def setup_Q(self):
@@ -245,7 +248,7 @@ cdef extern from "tree.h":
         _Node* getExternalNode(string)
         _Node* getExternalNode(int)
         _Node* getInternalNode(int)
-        _Node* getInternalNode(string)
+        _Node* getInternalNode(string &)
         _Node* getRoot()
         _Node* getMRCA(vector[string] innodes)
 
@@ -270,12 +273,14 @@ cdef class Tree:
     def getInternalNode(self, int_or_str x):
         cdef _Node* p
         cdef Node n
+        cdef string s
         if int_or_str is cython.int:
-            print >> sys.stderr, 'getInternalNode got int', x
+            ## print >> sys.stderr, 'getInternalNode got int', x
             p = self.ptr.getInternalNode(x)
-        elif int_or_str is cython.p_char:
-            print >> sys.stderr, 'getInternalNode got str', x
-            p = self.ptr.getInternalNode(string(<char *>x))
+        elif int_or_str is unicode:
+            ## print >> sys.stderr, 'getInternalNode got str', x
+            s = x.encode('utf-8')
+            p = self.ptr.getInternalNode(s)
         else:
             raise ValueError
         if p != NULL:
@@ -434,11 +439,11 @@ cdef class BioGeoTree:
         self.ptr.prepare_ancstate_reverse()
 
         for i, a in enumerate(areas):
-            area_i2s[i] = string(<char *>a)
+            area_i2s[i] = a.encode('utf-8')
 
         d = {}
         for i in range(n):
-            ## print 'i is', i
+            print(i)
             node = intree.ptr.getInternalNode(i)
             totL = _Superdouble(0,0)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
@@ -454,7 +459,7 @@ cdef class BioGeoTree:
             #print "totL:", superdouble_factory(&totL)
 
             summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
-            #print >> sys.stderr, 'node %s (summary: %s)' % (i, summary.size())
+            ## print >> sys.stderr, 'node %s (summary: %s)' % (i, summary.size())
             k = 0
             it = summary.begin()
             v = []
@@ -463,10 +468,10 @@ cdef class BioGeoTree:
                 #print "prop", float(superdouble_factory(prop))
                 v.append((float(superdouble_factory(superptr(super_ln(deref(it).first)))),
                           float(superdouble_factory(prop)),
-                          deref(it).second.c_str()))
+                          deref(it).second.decode('utf-8')))
                 inc(it)
                 k += 1
-            d[node.getName().c_str()] = list(reversed(sorted(v)))
+            d[node.getName().decode('utf-8')] = list(reversed(sorted(v)))
         print >> sys.stderr, "Done"
         return d
 
