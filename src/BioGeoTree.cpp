@@ -552,6 +552,7 @@ void BioGeoTree::reverse(Node & node){
 map<vector<int>,vector<AncSplit> > BioGeoTree::calculate_ancsplit_reverse(Node & node,bool marg){
     vector<Superdouble> * Bs = node.getDoubleVector(revB);
     map<vector<int>,vector<AncSplit> > ret;
+    //cout << node.getName() << endl;
     for(unsigned int j=0;j<rootratemodel->getDists()->size();j++){
 	vector<int> dist = rootratemodel->getDists()->at(j);
 	vector<AncSplit> ans = iter_ancsplits(rootratemodel,dist);
@@ -564,11 +565,11 @@ map<vector<int>,vector<AncSplit> > BioGeoTree::calculate_ancsplit_reverse(Node &
 		vector<vector<int> > * exdist = node.getExclDistVector();
 		int cou = count(exdist->begin(), exdist->end(), (*rootratemodel->get_int_dists_map())[ans[i].ancdistint]);
 		if (cou == 0) {
-		    vector<Superdouble> v1  =tsegs1->at(0).alphas;
+		    vector<Superdouble> v1 = tsegs1->at(0).alphas;
 		    vector<Superdouble> v2 = tsegs2->at(0).alphas;
 		    Superdouble lh = (v1[ans[i].ldescdistint]*v2[ans[i].rdescdistint]*Bs->at(j)*ans[i].getWeight());
 		    ans[i].setLikelihood(lh);
-		    //cout << lh << endl;
+		    //cout << node.getName() << " " << ans[i].ancdistint << " " << lh << endl;
 		}
 	    }
 	}
