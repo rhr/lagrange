@@ -209,39 +209,77 @@ void Superdouble::operator -= (const Superdouble  &x){
 }
 
 bool Superdouble::operator > (const Superdouble & x)const{
-	if (exponent > x.exponent)
-		return true;
-	else if(exponent == x.exponent && mantissa > x.mantissa)
-		return true;
-	else
-		return false;
+	if (mantissa > 0 && x.mantissa > 0) {
+		return exponent > x.exponent;
+	}
+	if (mantissa < 0 && x.mantissa < 0) {
+		return exponent < x.exponent;
+	}
+	return mantissa > x.mantissa;
 }
 
 bool Superdouble::operator >= (const Superdouble & x)const{
-	if (exponent > x.exponent)
-		return true;
-	else if(exponent == x.exponent && mantissa >= x.mantissa)
-		return true;
-	else
-		return false;
+	if (mantissa > 0 && x.mantissa > 0) {
+		if (exponent == x.exponent) {
+			return mantissa >= x.mantissa;
+		}
+		else {
+			return exponent > x.exponent;
+		}
+	}
+	if (mantissa < 0 && x.mantissa < 0) {
+		if (exponent == x.exponent) {
+			return mantissa >= x.mantissa;
+		}
+		else {
+			return exponent < x.exponent;
+		}
+	}
+	return mantissa > x.mantissa;
+
+	// if (exponent > x.exponent)
+	// 	return true;
+	// else if(exponent == x.exponent && mantissa >= x.mantissa)
+	// 	return true;
+	// else
+	// 	return false;
 }
 
 bool Superdouble::operator < (const Superdouble & x)const{
-	if (exponent < x.exponent)
-		return true;
-	else if(exponent == x.exponent && mantissa < x.mantissa)
-		return true;
-	else
-		return false;
+	if (mantissa > 0 && x.mantissa > 0) {
+		return exponent < x.exponent;
+	}
+	if (mantissa < 0 && x.mantissa < 0) {
+		return exponent > x.exponent;
+	}
+	return mantissa < x.mantissa;
 }
 
 bool Superdouble::operator <= (const Superdouble & x)const{
-	if (exponent < x.exponent)
-		return true;
-	else if(exponent == x.exponent && mantissa <= x.mantissa)
-		return true;
-	else
-		return false;
+	if (mantissa > 0 && x.mantissa > 0) {
+		if (exponent == x.exponent) {
+			return mantissa <= x.mantissa;
+		}
+		else {
+			return exponent > x.exponent;
+		}
+	}
+	if (mantissa < 0 && x.mantissa < 0) {
+		if (exponent == x.exponent) {
+			return mantissa <= x.mantissa;
+		}
+		else {
+			return exponent > x.exponent;
+		}
+	}
+	return mantissa < x.mantissa;
+
+	// if (exponent < x.exponent)
+	// 	return true;
+	// else if(exponent == x.exponent && mantissa <= x.mantissa)
+	// 	return true;
+	// else
+	// 	return false;
 }
 
 bool Superdouble::operator == (const Superdouble & x)const{
