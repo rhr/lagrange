@@ -1,5 +1,6 @@
 import sys
 from math import log
+from collections import defaultdict
 from cython.operator cimport dereference as deref, preincrement as inc
 from cython import address as addr
 
@@ -33,8 +34,8 @@ cdef extern from "superdouble.h":
         ## void operator/= (Superdouble)
         ## void operator+= (Superdouble)
         ## void operator-= (Superdouble)
-        ## bool operator < (const Superdouble&)const 
-        ## bool operator > (const Superdouble&)const 
+        bool operator < (_Superdouble&)
+        bool operator > (_Superdouble&)
         ## bool operator >= (const Superdouble&)const 
         ## bool operator <= (const Superdouble&)const 
         int getExponent()
@@ -53,19 +54,37 @@ cdef extern from "superdouble.h":
 cdef _Superdouble * superptr(_Superdouble x):
     return &x
 
+cdef class Superdouble
+
 cdef class Superdouble:
-    cdef _Superdouble* ptr
+    cdef _Superdouble ptr
     def __cinit__(self, long double mantissa=1.0, int exponent=0):
-        self.ptr = new _Superdouble(mantissa, exponent)
+        self.ptr = _Superdouble(mantissa, exponent)
+    @property
+    def mantissa(self):
+        return self.ptr.getMantissa()
+    @property
+    def exponent(self):
+        return self.ptr.getExponent()
     def __str__(self):
         self.ptr.adjustDecimal()
         return "%ge%d" % (self.ptr.getMantissa(), self.ptr.getExponent())
     def __float__(self):
         return float(str(self))
-    ## def getLn(self):
-    ##     return super_ln(self.ptr)
+    def __add__(Superdouble self, Superdouble other):
+        return superdouble_factory(super_add(self.ptr, other.ptr))
+    def __truediv__(Superdouble self, Superdouble other):
+        cdef long double m = self.ptr.getMantissa()/other.ptr.getMantissa()
+        cdef int e = self.ptr.getExponent()-other.ptr.getExponent()
+        return Superdouble(m, e)
+    def __gt__(self, Superdouble other):
+        return self.ptr > other.ptr
+    def __lt__(self, Superdouble other):
+        return self.ptr < other.ptr
+    def getLn(self):
+        return superdouble_factory(super_ln(self.ptr))
 
-cdef Superdouble superdouble_factory(_Superdouble *p):
+cdef Superdouble superdouble_factory(_Superdouble p):
     cdef Superdouble n = Superdouble.__new__(Superdouble)
     n.ptr = p
     return n
@@ -106,7 +125,7 @@ cdef class Node:
             inc(it)
         return children
     def getName(self):
-        return self.ptr.getName().c_str()
+        return self.ptr.getName().decode('utf-8')
     def getNumber(self):
         cdef int n = self.ptr.getNumber()
         return n
@@ -388,10 +407,6 @@ cdef class BioGeoTree:
             for x in v:
                 dist.push_back(x)
             m[tiplabel] = deref(dist)
-        ## cdef map[string,vector[int]].iterator it = m.begin()
-        ## while it != m.end():
-        ##     print deref(it).first.c_str()#, deref(it).second
-        ##     inc(it)
         self.ptr.set_tip_conditionals(m)
 
     def optimize_global_dispersal_extinction(self, bool marginal, RateModel m):
@@ -409,7 +424,8 @@ cdef class BioGeoTree:
         m.setup_Q()
         self.ptr.update_default_model(m.ptr)
         self.ptr.set_store_p_matrices(True)
-        neglnL = float(superdouble_factory(superptr(self.ptr.eval_likelihood(marginal))))
+        neglnL = float(superdouble_factory(self.ptr.eval_likelihood(marginal)))
+        ## neglnL = float(superdouble_factory(superptr(self.ptr.eval_likelihood(marginal))))
         ## print "-lnL:", neglnL
         ## print
         ## self.ptr.set_store_p_matrices(False)
@@ -417,6 +433,19 @@ cdef class BioGeoTree:
                               (d, e, neglnL))
         return (d, e, neglnL)
         
+    def set_global_dispersal_extinction(self, double d, double e, bool marginal, RateModel m):
+        ## cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
+        cdef neglnL
+        m.setup_D(d)
+        m.setup_E(e)
+        m.setup_Q()
+        self.ptr.update_default_model(m.ptr)
+        self.ptr.set_store_p_matrices(True)
+        neglnL = float(superdouble_factory(self.ptr.eval_likelihood(marginal)))
+        ## neglnL = float(superdouble_factory(superptr(self.ptr.eval_likelihood(marginal))))
+        print >> sys.stderr, ("dispersal = %s; extinction = %s; -lnL = %s" %
+                              (d, e, neglnL))
+
     def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
         print >> sys.stderr, "calculating ancestral splits..."
         cdef int n = intree.ptr.getInternalNodeCount()
@@ -432,8 +461,8 @@ cdef class BioGeoTree:
         cdef _BioGeoTreeTools tt
         cdef map[_Superdouble,string] summary
         cdef map[_Superdouble,string].iterator it
-        cdef _Superdouble totL
-        cdef _Superdouble* prop, lnl
+        cdef _Superdouble totL, zero, tmp, prop
+        cdef Superdouble lh
 
         self.ptr.set_use_stored_matrices(True)
         self.ptr.prepare_ancstate_reverse()
@@ -441,10 +470,21 @@ cdef class BioGeoTree:
         for i, a in enumerate(areas):
             area_i2s[i] = a.encode('utf-8')
 
-        d = {}
+        dists = [ tuple(x) for x in m.getDists() ]
+
+        def d2s(d, sep=''):
+            return sep.join([ areas[i] for i,x in enumerate(d) if x ])
+
+        zero = _Superdouble(0,0)
+
+        d = defaultdict(list)
         for i in range(n):
-            print(i)
             node = intree.ptr.getInternalNode(i)
+            name = node.getName().decode('utf-8')
+            ## _excl = node.getExclDistVector()
+            ## excl = set()
+            ## for j in range(_excl.size()):
+            ##     excl.add(tuple(_excl.at(j)))
             totL = _Superdouble(0,0)
             ras = self.ptr.calculate_ancsplit_reverse(deref(node), marginal)
             rasit = ras.begin()
@@ -452,26 +492,17 @@ cdef class BioGeoTree:
                 tans = &deref(rasit).second
                 tansit = tans.begin()
                 while tansit != tans.end():
-                    #ancsplit = deref(tansit)
-                    totL += deref(tansit).getLikelihood()
+                    ancsplit = &deref(tansit)
+                    tmp = ancsplit.getLikelihood()
+                    if tmp > zero:
+                        totL = super_add(totL, tmp)
+                        d[name].append(
+                            [superdouble_factory(tmp),
+                             d2s(dists[ancsplit.ancdistint]),
+                             d2s(dists[ancsplit.ldescdistint]),
+                             d2s(dists[ancsplit.rdescdistint])])
                     inc(tansit)
                 inc(rasit)
-            #print "totL:", superdouble_factory(&totL)
-
-            summary = tt.summarizeSplits(node, ras, area_i2s, m.ptr)
-            ## print >> sys.stderr, 'node %s (summary: %s)' % (i, summary.size())
-            k = 0
-            it = summary.begin()
-            v = []
-            while it != summary.end():
-                prop = superptr(super_divide(deref(it).first, totL))
-                #print "prop", float(superdouble_factory(prop))
-                v.append((float(superdouble_factory(superptr(super_ln(deref(it).first)))),
-                          float(superdouble_factory(prop)),
-                          deref(it).second.decode('utf-8')))
-                inc(it)
-                k += 1
-            d[node.getName().decode('utf-8')] = list(reversed(sorted(v)))
         print >> sys.stderr, "Done"
         return d
 
