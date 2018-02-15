@@ -9,6 +9,9 @@ from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp.map cimport map
 
+import numpy as np
+cimport numpy as np
+
 cimport cython
 
 ctypedef fused int_or_str:
@@ -18,6 +21,12 @@ ctypedef fused int_or_str:
     unicode
     string
     
+cdef extern:
+    void wrapalldmexpv_(int * n,int* m,double * t,double* v,double * w,
+                        double* tol, double* anorm,double* wsp, int * lwsp,
+                        int* iwsp,int *liwsp, int * itrace,int *iflag,
+		        int *ia, int *ja, double *a, int *nz, double * res)
+
 cdef extern from "math.h": 
     bint isnan(double x)
 
@@ -217,6 +226,7 @@ cdef extern from "RateModel.h":
         void set_Qdiag(int)
         void setup_Q()
         vector[vector[int]] * getDists()
+        vector[vector[double]] setup_sparse_full_P(int period, double t)
         
 cdef class RateModel:
     cdef _RateModel* ptr
@@ -556,3 +566,16 @@ cdef class InputReader:
         self.ptr.readMultipleTreeFile(<string>s, deref(trees))
         tv = deref(trees)
         print tv.size()
+
+def test_sparse():
+    from scipy.sparse import coo_matrix
+    from scipy.linalg import expm
+
+    cdef np.double_t[:,:] dense
+    # rate matrix with rows as ancestors and columns as descendants
+    dense = np.array([[-1,1,0,0],
+                      [0,-2,2,0],
+                      [0,0,-3,3],
+                      [0,0,4,-4]], dtype=np.double)
+    
+    Q = coo_matrix(dense)
