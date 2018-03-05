@@ -11,6 +11,7 @@ from libcpp.map cimport map
 
 import numpy as np
 cimport numpy as np
+np.import_array()
 
 cimport cython
 
@@ -571,7 +572,7 @@ def test_sparse():
     from scipy.sparse import coo_matrix
     from scipy.linalg import expm
 
-    cdef np.double_t[:,:] dense
+    # cdef np.double_t[:,:] dense
     # rate matrix with rows as ancestors and columns as descendants
     dense = np.array([[-1,1,0,0],
                       [0,-2,2,0],
@@ -579,3 +580,29 @@ def test_sparse():
                       [0,0,4,-4]], dtype=np.double)
     
     Q = coo_matrix(dense)
+
+    cdef int n = Q.shape[0]
+    # cdef int m = min(n-1, 30)
+    cdef int m = n-1
+    cdef int nz = Q.nnz
+    cdef int[:] ia = Q.row+1
+    cdef int[:] ja = Q.col+1
+    cdef double[:] a = Q.data
+    cdef double[:] v = np.zeros((n,))
+    v[0] = 1
+    cdef double[:] w = np.zeros((n,))
+    cdef int ideg = 6
+    cdef double tol = 1
+    cdef int iflag = 0
+    cdef int lwsp = n*(m+1)+n+pow((m+2.),2)+4*pow((m+2.),2)+ideg+1
+    cdef double[:] wsp = np.zeros((lwsp,))
+    cdef int liwsp = m+2
+    cdef int[:] iwsp = np.zeros((liwsp,), dtype=np.int32)
+    cdef double t1 = 1
+    cdef double anorm = 0
+    cdef int itrace = 0
+    cdef double[:] res = np.zeros((n*n,))
+
+    wrapalldmexpv_(&n, &m, &t1, &v[0], &w[0], &tol, &anorm, &wsp[0], &lwsp, &iwsp[0], &liwsp, &itrace, &iflag, &ia[0], &ja[0], &a[0], &nz, &res[0]);
+    
+    print(np.array(res).reshape((4,4)))
