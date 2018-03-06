@@ -15,6 +15,12 @@ np.import_array()
 
 cimport cython
 
+from cpython cimport array
+import array
+
+cdef array.array intarray = array.array('i', [])
+cdef array.array doublearray = array.array('d', [])
+
 ctypedef fused int_or_str:
     cython.int
     cython.p_char
@@ -23,10 +29,14 @@ ctypedef fused int_or_str:
     string
     
 cdef extern:
-    void wrapalldmexpv_(int * n,int* m,double * t,double* v,double * w,
-                        double* tol, double* anorm,double* wsp, int * lwsp,
-                        int* iwsp,int *liwsp, int * itrace,int *iflag,
-		        int *ia, int *ja, double *a, int *nz, double * res)
+    void wrapalldmexpv_(int* n, int* m, double* t, double* v, double* w,
+                        double* tol, double* anorm, double* wsp, int* lwsp,
+                        int* iwsp, int *liwsp, int* itrace, int* iflag,
+		        int* ia, int* ja, double* a, int* nz, double* res)
+    void wrapsingledmexpv_(int* n, int* m, double* t, double* v, double* w,
+                           double* tol, double* anorm, double* wsp, int * lwsp,
+                           int* iwsp, int* liwsp, int* itrace, int* iflag,
+                           int* ia, int* ja, double* a, int* nz, double* res)
 
 cdef extern from "math.h": 
     bint isnan(double x)
@@ -568,7 +578,7 @@ cdef class InputReader:
         tv = deref(trees)
         print tv.size()
 
-def test_sparse():
+def test_sparse_full():
     from scipy.sparse import coo_matrix
     from scipy.linalg import expm
 
@@ -603,6 +613,86 @@ def test_sparse():
     cdef int itrace = 0
     cdef double[:] res = np.zeros((n*n,))
 
-    wrapalldmexpv_(&n, &m, &t1, &v[0], &w[0], &tol, &anorm, &wsp[0], &lwsp, &iwsp[0], &liwsp, &itrace, &iflag, &ia[0], &ja[0], &a[0], &nz, &res[0]);
+    wrapalldmexpv_(&n, &m, &t1, &v[0], &w[0], &tol, &anorm, &wsp[0], &lwsp, &iwsp[0], &liwsp, &itrace, &iflag, &ia[0], &ja[0], &a[0], &nz, &res[0])
     
     print(np.array(res).reshape((4,4)))
+
+def test_sparse_single(int column=0, double t=1):
+    from scipy.sparse import coo_matrix
+    from scipy.linalg import expm
+
+    # cdef np.double_t[:,:] dense
+    # rate matrix with rows as ancestors and columns as descendants
+    dense = np.array([[-1,1,0,0],
+                      [0,-2,2,0],
+                      [0,0,-3,3],
+                      [0,0,4,-4]], dtype=np.double)
+    
+    Q = coo_matrix(dense)
+
+    cdef int n = Q.shape[0]
+    cdef int m = n-1
+    cdef int nz = Q.nnz
+    cdef int[:] ia = Q.row+1
+    cdef int[:] ja = Q.col+1
+    cdef double[:] a = Q.data
+    cdef array.array v = array.clone(doublearray, n, True)
+    v[column] = 1  # only return the one column we want
+    cdef array.array w = array.clone(doublearray, n, True)
+    cdef int ideg = 6
+    cdef double tol = 1
+    cdef int iflag = 0
+    cdef int lwsp = n*(m+1)+n+pow((m+2.),2)+4*pow((m+2.),2)+ideg+1
+    cdef array.array wsp = array.clone(doublearray, lwsp, True)
+    cdef int liwsp = m+2
+    cdef array.array iwsp = array.clone(intarray, liwsp, True)
+    cdef double t1 = t  # used to be 1
+    cdef double anorm = 0;
+    cdef int itrace = 0;
+    cdef array.array res = array.clone(doublearray, n, True)  # only needs resulting columns
+    
+    wrapsingledmexpv_(&n, &m, &t1, &v.data.as_doubles[0], &w.data.as_doubles[0],
+                      &tol, &anorm, &wsp.data.as_doubles[0], &lwsp,
+                      &iwsp.data.as_ints[0], &liwsp, &itrace, &iflag,
+                      &ia[0], &ja[0], &a[0], &nz, &res.data.as_doubles[0])
+    print(res)
+
+def test_sparse_single_np(int column=0, double t=1):
+    from scipy.sparse import coo_matrix
+    from scipy.linalg import expm
+
+    # cdef np.double_t[:,:] dense
+    # rate matrix with rows as ancestors and columns as descendants
+    dense = np.array([[-1,1,0,0],
+                      [0,-2,2,0],
+                      [0,0,-3,3],
+                      [0,0,4,-4]], dtype=np.double)
+    
+    Q = coo_matrix(dense)
+
+    cdef int n = Q.shape[0]
+    cdef int m = n-1
+    cdef int nz = Q.nnz
+    cdef int[:] ia = Q.row+1
+    cdef int[:] ja = Q.col+1
+    cdef double[:] a = Q.data
+    cdef double[:] v = np.zeros((n,))
+    v[column] = 1  # only return the one column we want
+    cdef double[:] w = np.zeros((n,))
+    cdef int ideg = 6
+    cdef double tol = 1
+    cdef int iflag = 0
+    cdef int lwsp = n*(m+1)+n+pow((m+2.),2)+4*pow((m+2.),2)+ideg+1
+    cdef double[:] wsp = np.zeros((lwsp,))
+    cdef int liwsp = m+2
+    cdef int[:] iwsp = np.zeros((liwsp,), dtype=np.int32)
+    cdef double t1 = t  # used to be 1
+    cdef double anorm = 0;
+    cdef int itrace = 0;
+    cdef double[:] res = np.zeros((n,))
+    
+    wrapsingledmexpv_(&n, &m, &t1, &v[0], &w[0],
+                      &tol, &anorm, &wsp[0], &lwsp,
+                      &iwsp[0], &liwsp, &itrace, &iflag,
+                      &ia[0], &ja[0], &a[0], &nz, &res[0])
+    print(np.array(res))
