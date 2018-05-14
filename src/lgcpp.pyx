@@ -83,6 +83,9 @@ cdef class Superdouble:
         return self.ptr < other.ptr
     def getLn(self):
         return superdouble_factory(super_ln(self.ptr))
+    def adjustDecimal(self):
+        self.ptr.adjustDecimal()
+
 
 cdef Superdouble superdouble_factory(_Superdouble p):
     cdef Superdouble n = Superdouble.__new__(Superdouble)
