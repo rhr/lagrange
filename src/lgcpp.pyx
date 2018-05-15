@@ -89,6 +89,7 @@ cdef class Superdouble:
 
 cdef Superdouble superdouble_factory(_Superdouble p):
     cdef Superdouble n = Superdouble.__new__(Superdouble)
+    p.adjustDecimal()
     n.ptr = p
     return n
 
