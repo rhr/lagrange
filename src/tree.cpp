@@ -47,7 +47,7 @@ Node * Tree::getExternalNode(int num){
  * could precompute this, check for run time differences
  */
 Node * Tree::getExternalNode(string & name){
-	cout << "getExternalNode: " << name << endl;
+	// cout << "getExternalNode: " << name << endl;
 	Node * ret = NULL;
 	for(unsigned int i=0;i<externalNodes.size();i++){
 		if (externalNodes.at(i)->getName() == name)
