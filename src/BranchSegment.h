@@ -20,15 +20,15 @@ using namespace std;
 #endif
 
 class BranchSegment{
-	private:
+	//private:
+
+	public:
+		BranchSegment(double dur,int per);
 		double duration;
 		int period;
 		RateModel * model;
 		vector<int> fossilareaindices;
 		int startdistint;
-
-	public:
-		BranchSegment(double dur,int per);
 		void setModel(RateModel * mod);
 		//void setStartDist(vector<int> sd);
 		void clearStartDist();

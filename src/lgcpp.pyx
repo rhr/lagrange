@@ -36,8 +36,9 @@ cdef extern from "superdouble.h":
         ## void operator-= (Superdouble)
         bool operator < (_Superdouble&)
         bool operator > (_Superdouble&)
-        ## bool operator >= (const Superdouble&)const 
-        ## bool operator <= (const Superdouble&)const 
+        bool operator >= (_Superdouble&)
+        bool operator <= (_Superdouble&)
+        bool operator == (_Superdouble&)
         int getExponent()
         _Superdouble add(_Superdouble)
         void divideby(_Superdouble)
@@ -69,6 +70,10 @@ cdef class Superdouble:
     def __str__(self):
         self.ptr.adjustDecimal()
         return "%ge%d" % (self.ptr.getMantissa(), self.ptr.getExponent())
+    def __repr__(self):
+        self.ptr.adjustDecimal()
+        return "Superdouble(mantissa={}, exponent={})".format(
+            self.ptr.getMantissa(), self.ptr.getExponent())
     def __float__(self):
         return float(str(self))
     def __add__(Superdouble self, Superdouble other):
@@ -77,12 +82,18 @@ cdef class Superdouble:
         cdef long double m = self.ptr.getMantissa()/other.ptr.getMantissa()
         cdef int e = self.ptr.getExponent()-other.ptr.getExponent()
         return Superdouble(m, e)
+    def __eq__(self, Superdouble other):
+        return self.ptr == other.ptr
     def __gt__(self, Superdouble other):
         return self.ptr > other.ptr
+    def __ge__(self, Superdouble other):
+        return self.ptr >= other.ptr
     def __lt__(self, Superdouble other):
         return self.ptr < other.ptr
+    def __le__(self, Superdouble other):
+        return self.ptr <= other.ptr
     def getLn(self):
-        return superdouble_factory(super_ln(self.ptr))
+        return float(superdouble_factory(super_ln(self.ptr)))
     def adjustDecimal(self):
         self.ptr.adjustDecimal()
 
@@ -96,11 +107,79 @@ cdef Superdouble superdouble_factory(_Superdouble p):
 ## cdef long double super2double(_Superdouble x):
 ##     return x.getMantissa()*pow(10., x.getExponent())
 
+cdef extern from "BranchSegment.h":
+    cdef cppclass _BranchSegment "BranchSegment":
+        _BranchSegment(double, int)
+        double duration
+        int period
+        int startdistint
+        _RateModel * model
+        vector[_Superdouble]* distconds
+        vector[int] fossilareaindices
+        vector[int] getFossilAreas()
+        void setFossilArea(int)
+        void setModel(_RateModel*)
+        
+cdef class BranchSegment:
+    cdef _BranchSegment* ptr
+    def __init__(self, double duration, int period, RateModel m):
+        cdef _BranchSegment * bs = new _BranchSegment(duration, period)
+        self.ptr = bs
+        self.ptr.setModel(m.ptr)
+    def __cinit__(self):
+        self.ptr = NULL
+    ## def __dealloc__(self):
+    ##     del self.ptr
+    property duration:
+        def __get__(self):
+            return self.ptr.duration
+        def __set__(self, double x):
+            self.ptr.duration = x
+    property period:
+        def __get__(self):
+            return self.ptr.period
+        def __set__(self, int x):
+            self.ptr.period = x
+    ## property fossilareaindices:
+    ##     def __get__(self):
+    ##         return self.ptr.fossilareaindices
+    def setFossilArea(self, int area):
+        ## print >> sys.stderr, 'setFossilArea: %s' % area
+        self.ptr.setFossilArea(area)
+    def getFossilAreas(self):
+        return self.ptr.getFossilAreas()
+    def setModel(self, RateModel m):
+        self.ptr.setModel(m.ptr)
+
+cdef BranchSegment branchsegment_factory(_BranchSegment *p):
+    cdef BranchSegment bs = BranchSegment.__new__(BranchSegment)
+    bs.ptr = p
+    return bs
+
+def new_branchsegment(double duration, int period, RateModel m):
+    cdef _BranchSegment * newbs = new _BranchSegment(duration, period)
+    cdef BranchSegment bs = BranchSegment.__new__(BranchSegment)
+    bs.ptr = newbs
+    bs.setModel(m)
+    return bs
+
 cdef extern from "node.h":
     cdef cppclass _Node "Node":
         _Node()
+
+        double BL
+        double height
+        int number
+        string name
+        _Node * parent
+        vector[_Node*] children
+        string comment
+        vector[_BranchSegment]* segs
+        vector[vector[int]]* excluded_dists
+
         bool isExternal()
         bool isInternal()
+        bool isRoot()
         vector[_Node*] getChildren()
         string getName()
         vector[_BranchSegment]* getSegVector()
@@ -109,9 +188,17 @@ cdef extern from "node.h":
         int getNumber()
         _Node * getParent()
         vector[vector[int]] * getExclDistVector()
+        double getHeight()
+        double getBL()
+        double lengthToRoot()
+        void setHeight(double h)
+        void deleteSegVector()
         
+cdef class Node
 cdef class Node:
     cdef _Node* ptr
+    def __init__(self):
+        self.segs = []
     def __cinit__(self):
         self.ptr = NULL
     ## def __dealloc__(self):
@@ -120,6 +207,8 @@ cdef class Node:
         return self.ptr.isExternal()
     def isInternal(self):
         return self.ptr.isInternal()
+    def isRoot(self):
+        return self.ptr.isRoot()
     def getChildren(self):
         cdef vector[_Node*] v = self.ptr.getChildren()
         cdef vector[_Node*].iterator it = v.begin()
@@ -128,11 +217,23 @@ cdef class Node:
             children.append(node_factory(deref(it)))
             inc(it)
         return children
+    def iterChildren(self):
+        cdef vector[_Node*] v = self.ptr.getChildren()
+        cdef vector[_Node*].iterator it = v.begin()
+        while it != v.end():
+            yield node_factory(deref(it))
+            inc(it)
     def getName(self):
         return self.ptr.getName().decode('utf-8')
+    def getBL(self):
+        return self.ptr.getBL()
     def getNumber(self):
         cdef int n = self.ptr.getNumber()
         return n
+    def getHeight(self):
+        return self.ptr.getHeight()
+    def setHeight(self, double height):
+        self.ptr.setHeight(height)
     def getParent(self):
         cdef _Node* p = self.ptr.getParent()
         if p != NULL:
@@ -145,7 +246,11 @@ cdef class Node:
         while it != deref(v).end():
             segs.append(branchsegment_factory(&deref(it)))
             inc(it)
+        self.segs = segs
         return segs
+    def lengthToRoot(self):
+        return self.ptr.lengthToRoot()
+
     ## def set_tip_conditional(self, double i):
     ##     cdef vector[_BranchSegment]* v = self.ptr.getSegVector()
     ##     cdef _BranchSegment seg = deref(v.at(0))
@@ -156,11 +261,11 @@ cdef class Node:
 
     def iternodes(self, f=None):
         """
-        generate a list of nodes descendant from self - including self
+        generate nodes descendant from self - including self
         """
         if (f and f(self)) or (not f):
             yield self
-        for child in self.getChildren():
+        for child in self.iterChildren():
             for n in child.iternodes():
                 if (f and f(n)) or (not f):
                     yield n
@@ -169,41 +274,39 @@ cdef class Node:
         for n in self.iternodes(f=f):
             yield n
 
+    def rootpath_length(self):
+        cdef double bl = 0
+        cdef Node n = self
+        while not n.ptr.isRoot():
+            bl += n.ptr.getBL()
+            n = n.getParent()
+        return bl
+
+    # def setSegVector(self, durations, periods, models):
+    #     self.ptr.deleteSegVector()
+    #     cdef vector[_BranchSegment]* segs = new vector[_BranchSegment]()
+    #     cdef BranchSegment bs
+    #     v = []
+    #     for d, p, m in zip(durations, periods, models):
+    #         bs = BranchSegment(d, p)
+    #         bs.setModel(m)
+    #         segs.push_back(deref(bs.ptr))
+    #         v.append(bs)
+    #     self.ptr.segs = segs
+    #     return v
+
+    def setSegVector(self, v):
+        self.ptr.deleteSegVector()
+        cdef vector[_BranchSegment]* segs = new vector[_BranchSegment]()
+        cdef BranchSegment bs
+        for bs in v:
+            segs.push_back(deref(bs.ptr))
+        self.segs = v
+
 cdef Node node_factory(_Node *p):
     cdef Node n = Node.__new__(Node)
     n.ptr = p
     return n
-
-cdef extern from "BranchSegment.h":
-    cdef cppclass _BranchSegment "BranchSegment":
-        _BranchSegment(double, int)
-        vector[_Superdouble]* distconds
-        vector[int] fossilareaindices
-        vector[int] getFossilAreas()
-        void setFossilArea(int)
-        
-cdef class BranchSegment:
-    cdef _BranchSegment* ptr
-    def __cinit__(self):
-        self.ptr = NULL
-    ## def __dealloc__(self):
-    ##     del self.ptr
-    ## property distconds:
-    ##     def __get__(self):
-    ##         return self.ptr.distconds
-    ## property fossilareaindices:
-    ##     def __get__(self):
-    ##         return self.ptr.fossilareaindices
-    def setFossilArea(self, int area):
-        ## print >> sys.stderr, 'setFossilArea: %s' % area
-        self.ptr.setFossilArea(area)
-    def getFossilAreas(self):
-        return self.ptr.getFossilAreas()
-
-cdef BranchSegment branchsegment_factory(_BranchSegment *p):
-    cdef BranchSegment bs = BranchSegment.__new__(BranchSegment)
-    bs.ptr = p
-    return bs
 
 cdef extern from "RateModel.h":
     cdef cppclass _RateModel "RateModel":
@@ -274,6 +377,7 @@ cdef extern from "tree.h":
         _Node* getInternalNode(string &)
         _Node* getRoot()
         _Node* getMRCA(vector[string] innodes)
+        double maxTipPathLength()
 
 cdef class Tree:
     cdef _Tree* ptr
@@ -321,6 +425,21 @@ cdef class Tree:
     def internalNodes(self):
         cdef int n = self.ptr.getInternalNodeCount()
         return [ node_factory(self.ptr.getInternalNode(i)) for i in range(n) ]
+    def setHeights(self):
+        cdef double maxh
+        cdef Node root = self.getRoot()
+        cdef Node n
+        cdef _Node* nptr
+        leaves = root.iternodes(lambda x:x.isExternal())
+        maxh = max([ lf.rootpath_length() for lf in leaves ])
+        root.ptr.setHeight(maxh)
+        it = root.iternodes()
+        next(it)
+        for n in it:
+            nptr = n.ptr
+            nptr.setHeight(nptr.getParent().getHeight()-nptr.getBL())
+    def maxTipPathLength(self):
+        return self.ptr.maxTipPathLength()
     def newick(self):
         #cdef string s = string(<char *>"number")
         return "".join([self.ptr.getRoot().getNewick(True).decode('utf-8'),';'])

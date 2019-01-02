@@ -57,7 +57,7 @@ public:
 
 	void setHeightFromRootToNodes();
 	void setHeightFromTipToNodes();
-
+	double maxTipPathLength();
 	~Tree();
 };
 

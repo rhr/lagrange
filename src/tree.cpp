@@ -225,14 +225,16 @@ Node * Tree::getMRCA(vector<Node *> innodes){
 	return mrca;
 }
 
+// 'height' in this context == age
 void Tree::setHeightFromRootToNodes(){
-	setHeightFromRootToNode(*this->root,this->root->getBL());
+	double maxh = maxTipPathLength();
+	setHeightFromRootToNode(*this->root, maxh);
 }
 
 
 void Tree::setHeightFromRootToNode(Node & inNode, double newHeight) {
 	if (inNode.isRoot() == false) {
-		newHeight += inNode.getBL();
+		newHeight -= inNode.getBL();
 		inNode.setHeight(newHeight);
 	} else {
 		inNode.setHeight(newHeight);
@@ -240,6 +242,18 @@ void Tree::setHeightFromRootToNode(Node & inNode, double newHeight) {
 	for (int i = 0; i < inNode.getChildCount(); i++) {
 		setHeightFromRootToNode(inNode.getChild(i), newHeight);
 	}
+}
+
+double Tree::maxTipPathLength(){
+	double x = 0;
+	for (int i = 0; i < externalNodeCount; i++) {
+		Node * tip = this->getExternalNode(i);
+		double y = tip->lengthToRoot();
+		if (y > x) {
+			x = y;
+		}
+	}
+	return x;
 }
 
 /*

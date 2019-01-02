@@ -20,7 +20,13 @@ using namespace std;
 #include "superdouble.h"
 
 class Node{
-private:
+//private:
+
+public:
+	Node();
+	Node(Node * parent);
+	Node(double bl,int number,string name, Node * parent);
+
 	double BL;//branch lengths
 	double height; // could be from tip or from root
 	int number;
@@ -33,11 +39,6 @@ private:
 	vector<BranchSegment> * segs;
 	vector< vector<int> > * excluded_dists;
 
-public:
-	Node();
-	Node(Node * parent);
-	Node(double bl,int number,string name, Node * parent);
-
 	vector<Node*> getChildren();
 	bool isExternal();
 	bool isInternal();
@@ -48,6 +49,7 @@ public:
 	void setNumber(int n);
 	double getBL();
 	void setBL(double bl);
+	double lengthToRoot();
 	double getHeight();
 	void setHeight(double he);
 	bool hasChild(Node & test);

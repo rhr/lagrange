@@ -210,10 +210,20 @@ void Superdouble::operator -= (const Superdouble  &x){
 
 bool Superdouble::operator > (const Superdouble & x)const{
 	if (mantissa > 0 && x.mantissa > 0) {
-		return exponent > x.exponent;
+		if (exponent == x.exponent) {
+			return mantissa > x.mantissa;
+		}
+		else {
+			return exponent > x.exponent;
+		}
 	}
 	if (mantissa < 0 && x.mantissa < 0) {
-		return exponent < x.exponent;
+		if (exponent == x.exponent) {
+			return mantissa > x.mantissa;
+		}
+		else {
+			return exponent < x.exponent;
+		}
 	}
 	return mantissa > x.mantissa;
 }
@@ -224,7 +234,7 @@ bool Superdouble::operator >= (const Superdouble & x)const{
 			return mantissa >= x.mantissa;
 		}
 		else {
-			return exponent > x.exponent;
+			return exponent >= x.exponent;
 		}
 	}
 	if (mantissa < 0 && x.mantissa < 0) {
@@ -232,10 +242,10 @@ bool Superdouble::operator >= (const Superdouble & x)const{
 			return mantissa >= x.mantissa;
 		}
 		else {
-			return exponent < x.exponent;
+			return exponent <= x.exponent;
 		}
 	}
-	return mantissa > x.mantissa;
+	return mantissa >= x.mantissa;
 
 	// if (exponent > x.exponent)
 	// 	return true;
@@ -247,10 +257,20 @@ bool Superdouble::operator >= (const Superdouble & x)const{
 
 bool Superdouble::operator < (const Superdouble & x)const{
 	if (mantissa > 0 && x.mantissa > 0) {
-		return exponent < x.exponent;
+		if (exponent == x.exponent) {
+			return mantissa < x.mantissa;
+		}
+		else {
+			return exponent < x.exponent;
+		}
 	}
 	if (mantissa < 0 && x.mantissa < 0) {
-		return exponent > x.exponent;
+		if (exponent == x.exponent) {
+			return mantissa < x.mantissa;
+		}
+		else {
+			return exponent > x.exponent;
+		}
 	}
 	return mantissa < x.mantissa;
 }
@@ -261,7 +281,7 @@ bool Superdouble::operator <= (const Superdouble & x)const{
 			return mantissa <= x.mantissa;
 		}
 		else {
-			return exponent > x.exponent;
+			return exponent <= x.exponent;
 		}
 	}
 	if (mantissa < 0 && x.mantissa < 0) {
@@ -269,10 +289,10 @@ bool Superdouble::operator <= (const Superdouble & x)const{
 			return mantissa <= x.mantissa;
 		}
 		else {
-			return exponent > x.exponent;
+			return exponent >= x.exponent;
 		}
 	}
-	return mantissa < x.mantissa;
+	return mantissa <= x.mantissa;
 
 	// if (exponent < x.exponent)
 	// 	return true;

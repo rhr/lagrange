@@ -89,6 +89,21 @@ void Node::setBL(double bl){
 	BL = bl;
 }
 
+double Node::lengthToRoot(){
+	Node * n = this;
+	double bl = 0;
+	while(1){
+		if(n->hasParent()) {
+			bl += n->getBL();
+			n = n->getParent();
+		}
+		else{
+			break;
+		}
+	}
+	return bl;
+}
+
 double Node::getHeight(){
 	return height;
 }
