@@ -197,8 +197,6 @@ cdef extern from "node.h":
 cdef class Node
 cdef class Node:
     cdef _Node* ptr
-    def __init__(self):
-        self.segs = []
     def __cinit__(self):
         self.ptr = NULL
     ## def __dealloc__(self):
@@ -246,7 +244,6 @@ cdef class Node:
         while it != deref(v).end():
             segs.append(branchsegment_factory(&deref(it)))
             inc(it)
-        self.segs = segs
         return segs
     def lengthToRoot(self):
         return self.ptr.lengthToRoot()
@@ -301,7 +298,6 @@ cdef class Node:
         cdef BranchSegment bs
         for bs in v:
             segs.push_back(deref(bs.ptr))
-        self.segs = v
 
 cdef Node node_factory(_Node *p):
     cdef Node n = Node.__new__(Node)
