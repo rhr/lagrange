@@ -43,6 +43,7 @@ void Superdouble::adjustDecimal() {
 			exponent+=-1;
 		}
 	}
+	//cout << "here " << mantissa << " " << exponent << " " << stilldouble << endl;
 }
 
 ostream& operator<<(ostream& os, const Superdouble& x)

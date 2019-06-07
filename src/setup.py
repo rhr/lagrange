@@ -83,4 +83,4 @@ if __name__ == "__main__":
     setup(name = "Lagrange C++ extension module",
           cmdclass = {"build_ext": build_ext},
           ext_modules = [ext])
-      
+

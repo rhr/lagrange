@@ -193,6 +193,7 @@ cdef extern from "node.h":
         double lengthToRoot()
         void setHeight(double h)
         void deleteSegVector()
+        void initSegVector()
         
 cdef class Node
 cdef class Node:
@@ -294,10 +295,13 @@ cdef class Node:
 
     def setSegVector(self, v):
         self.ptr.deleteSegVector()
-        cdef vector[_BranchSegment]* segs = new vector[_BranchSegment]()
+        self.ptr.initSegVector()
+        ## cdef vector[_BranchSegment]* segs = new vector[_BranchSegment]()
         cdef BranchSegment bs
         for bs in v:
-            segs.push_back(deref(bs.ptr))
+            self.ptr.segs.push_back(deref(bs.ptr))
+        ## self.ptr.segs = segs
+
 
 cdef Node node_factory(_Node *p):
     cdef Node n = Node.__new__(Node)
