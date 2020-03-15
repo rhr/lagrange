@@ -1,3 +1,4 @@
+# cython: language_level=3
 import sys
 from math import log
 from collections import defaultdict
@@ -458,6 +459,10 @@ cdef class Tree:
             nptr.setHeight(nptr.getParent().getHeight()-nptr.getBL())
     def maxTipPathLength(self):
         return self.ptr.maxTipPathLength()
+    def labelNodesByNumber(self):
+        v = [ self.getRoot() ] + self.internalNodes()
+        for x in v:
+            x.setName(f'N{x.getNumber()}')
     def newick(self):
         #cdef string s = string(<char *>"number")
         return "".join([self.ptr.getRoot().getNewick(True).decode('utf-8'),';'])
@@ -696,4 +701,4 @@ cdef class InputReader:
         cdef vector[_Tree*] tv
         self.ptr.readMultipleTreeFile(<string>s, deref(trees))
         tv = deref(trees)
-        print tv.size()
+        # print tv.size()
