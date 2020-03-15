@@ -182,6 +182,7 @@ cdef extern from "node.h":
         bool isRoot()
         vector[_Node*] getChildren()
         string getName()
+        void setName(string)
         vector[_BranchSegment]* getSegVector()
         string getNewick(bool)
         string getNewick(bool,string)
@@ -224,6 +225,8 @@ cdef class Node:
             inc(it)
     def getName(self):
         return self.ptr.getName().decode('utf-8')
+    def setName(self, s):
+        self.ptr.setName(s.encode('utf-8'))
     def getBL(self):
         return self.ptr.getBL()
     def getNumber(self):
