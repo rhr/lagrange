@@ -391,8 +391,23 @@ cdef class Tree:
         return self.ptr.getExternalNodeCount()
     def getInternalNodeCount(self):
         return self.ptr.getInternalNodeCount()
-    def getExternalNode(self, string s):
-        cdef _Node* p = self.ptr.getExternalNode(s)
+    def getExternalNode(self, int_or_str x):
+        cdef _Node* p
+        cdef Node n
+        cdef string s
+        if int_or_str is cython.int:
+            p = self.ptr.getExternalNode(x)
+        elif int_or_str is unicode:
+            ## print >> sys.stderr, 'getInternalNode got str', x
+            s = x.encode('utf-8')
+            p = self.ptr.getExternalNode(s)
+        else:
+            raise ValueError
+        if p != NULL:
+            return node_factory(p)
+        else:
+            raise Exception
+
         return node_factory(p)
     ## def getExternalNode(self, int i):
     ##     cdef _Node* p = self.ptr.getExternalNode(i)
