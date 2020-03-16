@@ -575,8 +575,8 @@ cdef class BioGeoTree:
         ## print "-lnL:", neglnL
         ## print
         ## self.ptr.set_store_p_matrices(False)
-        print >> sys.stderr, ("dispersal = %s; extinction = %s; -lnL = %s" %
-                              (d, e, neglnL))
+        print("dispersal = %s; extinction = %s; -lnL = %s" % (d, e, neglnL),
+              file=sys.stderr)
         return (d, e, neglnL)
         
     def set_global_dispersal_extinction(self, double d, double e, bool marginal, RateModel m):
