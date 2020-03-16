@@ -592,7 +592,7 @@ cdef class BioGeoTree:
         print("dispersal = %s; extinction = %s; -lnL = %s" % (d, e, neglnL),
               file=sys.stderr)
 
-    def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
+    def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas, sep=''):
         print("calculating ancestral splits...", file=sys.stderr)
         cdef int n = intree.ptr.getInternalNodeCount()
         #print >> sys.stderr, "%s nodes" % n
