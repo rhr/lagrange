@@ -618,7 +618,7 @@ cdef class BioGeoTree:
 
         dists = [ tuple(x) for x in m.getDists() ]
 
-        def d2s(d, sep=''):
+        def d2s(d, sep=sep):
             return sep.join([ areas[i] for i,x in enumerate(d) if x ])
 
         zero = _Superdouble(0,0)
