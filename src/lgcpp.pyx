@@ -557,7 +557,7 @@ cdef class BioGeoTree:
 
     def optimize_global_dispersal_extinction(self, bool marginal, RateModel m):
         ## cdef double initL = super2double(self.ptr.eval_likelihood(marginal))
-        print >> sys.stderr, "optimizing rate parameters..."
+        print("optimizing rate parameters...", file=sys.stderr)
         cdef _OptimizeBioGeo* opt = new _OptimizeBioGeo(self.ptr, m.ptr, marginal)
         cdef vector[double] disext = opt.optimize_global_dispersal_extinction()
         cdef double d, e, neglnL
@@ -589,11 +589,11 @@ cdef class BioGeoTree:
         self.ptr.set_store_p_matrices(True)
         neglnL = float(superdouble_factory(self.ptr.eval_likelihood(marginal)))
         ## neglnL = float(superdouble_factory(superptr(self.ptr.eval_likelihood(marginal))))
-        print >> sys.stderr, ("dispersal = %s; extinction = %s; -lnL = %s" %
-                              (d, e, neglnL))
+        print("dispersal = %s; extinction = %s; -lnL = %s" % (d, e, neglnL),
+              file=sys.stderr)
 
     def ancsplits(self, Tree intree, bool marginal, RateModel m, list areas):
-        print >> sys.stderr, "calculating ancestral splits..."
+        print("calculating ancestral splits...", file=sys.stderr)
         cdef int n = intree.ptr.getInternalNodeCount()
         #print >> sys.stderr, "%s nodes" % n
         cdef int i, j, k
@@ -649,7 +649,7 @@ cdef class BioGeoTree:
                              d2s(dists[ancsplit.rdescdistint])])
                     inc(tansit)
                 inc(rasit)
-        print >> sys.stderr, "Done"
+        print("Done", file=sys.stderr)
         return d
 
     def setFossilatNodebyMRCA(self, names, int area):
